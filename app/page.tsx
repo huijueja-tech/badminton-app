@@ -225,7 +225,7 @@ export default function BadmintonUltimatePro() {
                   ) : (
                     <button onClick={() => {
                       const waiting = players.filter(p => p.status === 'waiting');
-                      if (waiting.length < 4) return setAlertModal({show:true, title:'เพื่อนยังมาไม่ครบจ้า', message:'ต้องการนักกีฬาที่ว่างอย่างน้อย 4 คนนะจ๊ะ'});
+                      if (waiting.length < 4) return setAlertModal({show:true, title:'เพื่อนยังมาไม่ครบจ้า', message:'ต้องการนักกีฬาที่ว่างอย่างน้อย 4 คนนะจ๊ะ', type: 'info'})
                       const selected = [...waiting].sort((a,b)=>a.gamesPlayed - b.gamesPlayed).slice(0,4).sort(()=>Math.random()-0.5);
                       setPlayers(players.map(p=>selected.find(s=>s.id===p.id)?{...p, status:'playing'}:p));
                       setCourts(courts.map(c=>c.id===court.id?{...c, status:'busy', teamA:selected.slice(0,2), teamB:selected.slice(2,4), startTime:new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}:c));
@@ -489,6 +489,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
