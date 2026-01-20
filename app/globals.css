@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #f8fafc; /* สีพื้นหลังอ่อนๆ ให้ดูสะอาดตา */
+  font-family: 'Inter', sans-serif;
+}
