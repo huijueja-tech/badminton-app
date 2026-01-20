@@ -454,8 +454,8 @@ export default function BadmintonUltimatePro() {
                 setPlayers([...players, newP]); 
                 setPlayerName(''); 
                 setConfirmModal({ show: false, name: '' });
-                setAlertModal({ show: true, title: 'บันทึกเรียบร้อยจ้า! ✨', message: 'ลงชื่อสำเร็จแล้วน้า ขอให้เป็นวันที่สนุกที่สุดนะจ๊ะ' });
-              }} className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-[18px] shadow-lg">ยืนยันเลยจ้า!</button>
+                setAlertModal({ show: true, title: 'บันทึกเรียบร้อยจ้า! ✨', message: 'ลงชื่อสำเร็จแล้วน้า ขอให้เป็นวันที่สนุกที่สุดนะจ๊ะ', type: 'info' });
+                }} className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-[18px] shadow-lg">ยืนยันเลยจ้า!</button>
               <button onClick={() => setConfirmModal({ show: false, name: '' })} className="w-full py-4 bg-slate-50 text-slate-400 rounded-2xl font-bold">วอร์มร่างกายก่อนนะ</button>
             </div>
           </div>
@@ -489,6 +489,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
