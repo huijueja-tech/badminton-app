@@ -1,3 +1,5 @@
+import './globals.css'
+
 export const metadata = {
   title: 'Badminton Ultimate Pro',
   description: 'แอปจัดการก๊วนแบดมินตันอบอุ่น',
