@@ -105,50 +105,54 @@ export default function BadmintonUltimatePro() {
   };
 
  const finalizeMatch = async (courtId, winner, numShuttles) => {
-    const court = courts.find(c => c.id === courtId);
-    const participants = [...court.teamA.map(p => p.id), ...court.teamB.map(p => p.id)];
+  const court = courts.find(c => c.id === courtId);
+  const participants = [...court.teamA.map(p => p.id), ...court.teamB.map(p => p.id)];
 
-    // 1. เตรียมข้อมูลใหม่สำหรับผู้เล่นทุกคนในแมตช์
-    const updatedPlayers = players.map(p => {
-      if (participants.includes(p.id)) {
-        const isWin = (winner === 'A' && court.teamA.some(a => a.id === p.id)) || (winner === 'B' && court.teamB.some(b => b.id === p.id));
-        const pts = winner === 'Draw' ? 5 : (isWin ? 10 : 2);
-        const newData = { 
-          ...p, 
-          status: 'waiting', 
-          gamesPlayed: p.gamesPlayed + 1, 
-          wins: isWin ? p.wins + 1 : p.wins, 
-          points: p.points + pts, 
-          shuttlesInvolved: (p.shuttlesInvolved || 0) + numShuttles 
-        };
+  // 1. เตรียมข้อมูลใหม่และอัปเดตผู้เล่นแต่ละคนขึ้น Cloud
+  const updatedPlayers = await Promise.all(players.map(async (p) => {
+    if (participants.includes(p.id)) {
+      const isWin = (winner === 'A' && court.teamA.some(a => a.id === p.id)) || (winner === 'B' && court.teamB.some(b => b.id === p.id));
+      const pts = winner === 'Draw' ? 5 : (isWin ? 10 : 2);
+      
+      const newData = { 
+        ...p, 
+        status: 'waiting', 
+        gamesPlayed: p.gamesPlayed + 1, 
+        wins: isWin ? p.wins + 1 : p.wins, 
+        points: p.points + pts, 
+        shuttlesInvolved: (p.shuttlesInvolved || 0) + numShuttles 
+      };
 
-    // --- [NEW] ส่งข้อมูลเฉพาะคนที่แข่งจบไปอัปเดตบน Cloud ---
-    // เปลี่ยนเป็น (ให้ตรงกับชื่อคอลัมน์ใน SQL ที่สร้างไว้):
-          supabase.from('players').update({
-          status: newData.status,
-          games_played: newData.gamesPlayed, // แก้เป็น games_played
-          wins: newData.wins,
-          points: newData.points,
-          shuttles_involved: newData.shuttlesInvolved // แก้เป็น shuttles_involved
-    }).eq('id', p.id).then();
+      // --- [NEW] อัปเดตข้อมูลรายคนขึ้น Cloud ---
+      await supabase.from('players').update({
+        status: newData.status,
+        games_played: newData.gamesPlayed,
+        wins: newData.wins,
+        points: newData.points,
+        shuttles_involved: newData.shuttlesInvolved
+      }).eq('id', p.id);
 
-        return newData;
-      }
-      return p;
-    });
+      return newData;
+    }
+    return p;
+  }));
 
-    setPlayers(updatedPlayers);
+  setPlayers(updatedPlayers);
 
-    // 2. เคลียร์สนามบน Cloud และในเครื่อง
-    const { error } = await supabase.from('courts').update({ 
-      status: 'available', teamA: [], teamB: [], startTime: null 
-    }).eq('id', courtId);
-    setCourts(prev => prev.map(c => c.id === courtId ? { ...c, status: 'available', teamA: [], teamB: [] } : c));
-    setShuttleModal({ show: false, courtId: null, winner: null });
-    };
+  // 2. เคลียร์สนามบน Cloud และในเครื่อง
+  await supabase.from('courts').update({ 
+    status: 'available', 
+    teamA: [], 
+    teamB: [], 
+    startTime: null 
+  }).eq('id', courtId);
 
-    // เพิ่มบรรทัดนี้ก่อนบรรทัดสุดท้ายของ finalizeMatch
-    await fetchOnlineData();
+  setCourts(prev => prev.map(c => c.id === courtId ? { ...c, status: 'available', teamA: [], teamB: [], startTime: null } : c));
+  setShuttleModal({ show: false, courtId: null, winner: null });
+
+  // 3. ดึงข้อมูลล่าสุดจาก Cloud มาแสดงผล
+  await fetchOnlineData();
+}; // <--- ปีกกาปิดฟังก์ชัน finalizeMatch ต้องอยู่ตรงนี้
 
 const handleResetDay = async () => {
     if (confirm('ต้องการล้างรายชื่อเพื่อเริ่มวันใหม่ใช่ไหม?')) {
@@ -783,6 +787,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
