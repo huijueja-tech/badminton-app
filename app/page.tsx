@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase'; // เชื่อมต่อ Database
+import { supabase } from '../lib/supabase'; 
+// (ถ้าไฟล์ lib อยู่ข้างนอกโฟลเดอร์ app)
 import { 
   UserPlus, Users, ClipboardCheck, Trash2, Layout, 
   Settings, Trophy, Wallet, ChevronRight, Star, 
@@ -762,6 +763,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
