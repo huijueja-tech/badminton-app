@@ -218,61 +218,36 @@ const handleResetDay = async () => {
         wins: 0,
         points: 0,
         shuttles_involved: 0,
-        paid: false
+        paid: false,
+        // เพิ่ม avatar ให้มีรูปสุ่ม
+        avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${confirmModal.name + Date.now()}`
       }])
       .select();
 
     if (data) {
       setPlayers([...players, data[0]]);
       setConfirmModal({ show: false, name: '' });
-      setPlayerName(''); // ล้างช่องพิมพ์ชื่อ
+      setPlayerName(''); 
+      await fetchOnlineData(); // ซิงค์ข้อมูลล่าสุด
+    } else if (error) {
+      alert('เพิ่มคนไม่สำเร็จ: ' + error.message);
     }
   };
 
-  // --- [NEW] ฟังก์ชันลบคนออกจาก Cloud ---
+  // --- [NEW] ฟังก์ชันลบคนออกจาก Cloud (รวมร่างแล้ว) ---
   const removePlayer = async (id) => {
-    const { error } = await supabase
-      .from('players')
-      .delete()
-      .eq('id', id);
+    if (confirm('ยืนยันลบเพื่อนคนนี้ออกจากกลุ่ม?')) {
+      const { error } = await supabase
+        .from('players')
+        .delete()
+        .eq('id', id);
 
-    if (!error) {
-      setPlayers(players.filter(p => p.id !== id));
-    }
-  };
-  // --- [NEW] ฟังก์ชันยืนยันเพิ่มคนลง Cloud ---
-  const handleConfirmJoin = async () => {
-    const { data, error } = await supabase
-      .from('players')
-      .insert([{ 
-        name: confirmModal.name, 
-        status: 'waiting', 
-        games_played: 0,
-        wins: 0,
-        points: 0,
-        shuttles_involved: 0,
-        paid: false
-      }])
-      .select();
-
-    if (data) {
-      setPlayers([...players, data[0]]);
-      setConfirmModal({ show: false, name: '' });
-      setPlayerName(''); // ล้างช่องพิมพ์ชื่อ
-      await fetchOnlineData(); // เพิ่มเพื่อให้ชัวร์ว่าข้อมูลซิงค์
-    }
-  };
-
-  // --- [NEW] ฟังก์ชันลบคนออกจาก Cloud ---
-  const removePlayer = async (id) => {
-    const { error } = await supabase
-      .from('players')
-      .delete()
-      .eq('id', id);
-
-    if (!error) {
-      setPlayers(players.filter(p => p.id !== id));
-      await fetchOnlineData(); // เพิ่มเพื่อให้คนอื่นเห็นว่าคนนี้ออกไปแล้ว
+      if (!error) {
+        setPlayers(players.filter(p => p.id !== id));
+        await fetchOnlineData(); // ซิงค์ข้อมูลล่าสุดเพื่อให้คนอื่นเห็นว่าคนนี้ออกแล้ว
+      } else {
+        alert('ลบไม่สำเร็จ: ' + error.message);
+      }
     }
   };
 
@@ -787,6 +762,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
