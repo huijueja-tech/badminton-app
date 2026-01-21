@@ -57,7 +57,7 @@ export default function BadmintonUltimatePro() {
   const [bankQRImage, setBankQRImage] = useState(null); 
   const fileInputRef = useRef(null);
 
-  / --- [3] PERSISTENCE & ONLINE-SYNC ---
+  // --- [3] PERSISTENCE & ONLINE-SYNC ---
   useEffect(() => {
     // 1. โหลด Font Mali ให้สวยงามเหมือนเดิม
     const link = document.createElement('link');
@@ -783,6 +783,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
