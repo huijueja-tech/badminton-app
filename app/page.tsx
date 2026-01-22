@@ -350,85 +350,91 @@ const handleResetDay = async () => {
                 <button onClick={handleAddPlayer} className="w-full bg-pink-500 text-white py-4 rounded-2xl font-black text-[18px] shadow-lg shadow-pink-100 active:scale-95 transition-all">มาจอยกันเลย!</button>
               </div>
             </section>
-
-            {/* รายชื่อคอร์ด */}
-            <div className="space-y-4">
-              {courts.map(court => (
-                <div key={court.id} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-indigo-400 font-black text-[14px] uppercase tracking-tighter">Court {court.id}</span>
-                    {/* ส่วนแสดงผลเวลาเริ่มแข่ง */}
-<div className="flex items-center gap-1 bg-blue-50 px-3 py-1 rounded-full">
-  <Star size={12} className="fill-blue-500 text-blue-500" />
-  <span className="text-blue-600 font-black text-[12px]">{court.start_time || "--:--"}</span>
-</div>
-                    <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${court.status === 'busy' ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-500'}`}>
-                      {court.status === 'busy' ? `กำลังปล่อยพลัง (เริ่ม ${court.startTime})` : 'สนามว่างรอเพื่อนๆ'}
-                    </span>
-                  </div>
-
-                  {court.status === 'busy' ? (
-                    /* ส่วนโชว์ตอนคนกำลังแข่ง */
-                    <div className="space-y-4">
-                       <div className="flex justify-around items-center bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-slate-100">
-                          <div className="text-center">
-                            {court.teamA.map(p=><p key={p.id} className="font-bold text-indigo-600 text-[16px]">{p.name}</p>)}
-                            <button onClick={()=>handleEndMatchClick(court.id, 'A')} className="mt-3 bg-emerald-500 text-white px-6 py-2 rounded-full text-[14px] font-bold shadow-md">ชนะจ้า</button>
-                          </div>
-                          <div className="font-black text-slate-200 italic text-[20px]">VS</div>
-                          <div className="text-center">
-                            {court.teamB.map(p=><p key={p.id} className="font-bold text-indigo-600 text-[16px]">{p.name}</p>)}
-                            <button onClick={()=>handleEndMatchClick(court.id, 'B')} className="mt-3 bg-emerald-500 text-white px-6 py-2 rounded-full text-[14px] font-bold shadow-md">ชนะจ้า</button>
-                          </div>
-                       </div>                      
-                       <div className="flex gap-2">
-                          {gameFormat === '2sets' && (
-                            <button onClick={()=>handleEndMatchClick(court.id, 'Draw')} className="flex-1 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[14px] font-bold text-slate-400">เสมอแบบมิตรภาพ (1-1)</button>
-                          )}                          
-                          <button onClick={() => {
-                            if(confirm('สุ่มทีมใหม่สำหรับคอร์ดนี้?')){
-                              const participants = [...court.teamA, ...court.teamB].sort(()=>Math.random()-0.5);
-                              setCourts(courts.map(c=>c.id===court.id?{...c, teamA:participants.slice(0,2), teamB:participants.slice(2,4)}:c));
-                            }
-                          }} className="bg-slate-100 text-slate-400 px-4 rounded-2xl text-[18px]">🔄</button>
-                       </div>
+            
+              {/* รายชื่อคอร์ด */}
+              <div className="space-y-4">
+                {courts.map(court => (
+                  <div key={court.id} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-indigo-400 font-black text-[14px] uppercase tracking-tighter">Court {court.id}</span>
+                        {/* ส่วนแสดงผลเวลาเริ่มแข่งที่ดึงจาก DB */}
+                        <div className="flex items-center gap-1 bg-blue-50 px-3 py-1 rounded-full">
+                          <Star size={12} className="fill-blue-500 text-blue-500" />
+                          <span className="text-blue-600 font-black text-[12px]">{court.start_time || "--:--"}</span>
+                        </div>
+                      </div>
+                      
+                      <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${court.status === 'busy' ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                        {court.status === 'busy' ? `กำลังปล่อยพลัง` : 'สนามว่างรอเพื่อนๆ'}
+                      </span>
                     </div>
-                  {/* ปุ่มสำหรับแอดมินกดบันทึกเวลาใหม่ */}
-<button 
-  onClick={() => startMatch(court.id)}
-  className="w-full py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[12px] mt-2 hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent hover:border-blue-100"
->
-  🕒 บันทึก/แก้ไข เวลาเริ่มแข่ง
-</button>
-                  ) : (
-                    /* ส่วนปุ่มกดตอนสนามว่าง (ที่แก้ไขใหม่) */
-                    <button 
-                      onClick={async () => {
-                        const waiting = players.filter(p => p.status === 'waiting');
-                        if (waiting.length < 4) return setAlertModal({show:true, title:'เพื่อนยังมาไม่ครบจ้า', message:'ต้องการนักกีฬาที่ว่างอย่างน้อย 4 คนนะจ๊ะ', type: 'info'});
-                        
-                        const selected = [...waiting].sort((a,b)=>a.gamesPlayed - b.gamesPlayed).slice(0,4).sort(()=>Math.random()-0.5);
-                        const startTime = new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
-                        const participantIds = selected.map(p => p.id);
-
-                        await supabase.from('players').update({ status: 'playing' }).in('id', participantIds);
-                        await supabase.from('courts').update({ 
-                          status: 'busy', 
-                          teamA: selected.slice(0,2), 
-                          teamB: selected.slice(2,4), 
-                          startTime: startTime 
-                        }).eq('id', court.id);
-                        await fetchOnlineData();
-                      }} 
-                      className="w-full py-12 border-2 border-dashed border-indigo-100 rounded-[2.5rem] text-indigo-300 font-black text-[16px] flex flex-col items-center gap-2 active:scale-95 transition-all"
-                    >
-                      <span className="text-4xl">🏸</span>
-                      <span>จัดทีมลงสนาม</span>
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+              
+                    {court.status === 'busy' ? (
+                      /* ส่วนโชว์ตอนคนกำลังแข่ง */
+                      <div className="space-y-4">
+                         <div className="flex justify-around items-center bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-slate-100">
+                            <div className="text-center">
+                              {court.teamA.map(p=><p key={p.id} className="font-bold text-indigo-600 text-[16px]">{p.name}</p>)}
+                              <button onClick={()=>handleEndMatchClick(court.id, 'A')} className="mt-3 bg-emerald-500 text-white px-6 py-2 rounded-full text-[14px] font-bold shadow-md">ชนะจ้า</button>
+                            </div>
+                            <div className="font-black text-slate-200 italic text-[20px]">VS</div>
+                            <div className="text-center">
+                              {court.teamB.map(p=><p key={p.id} className="font-bold text-indigo-600 text-[16px]">{p.name}</p>)}
+                              <button onClick={()=>handleEndMatchClick(court.id, 'B')} className="mt-3 bg-emerald-500 text-white px-6 py-2 rounded-full text-[14px] font-bold shadow-md">ชนะจ้า</button>
+                            </div>
+                         </div>                      
+                         
+                         <div className="flex gap-2">
+                            {gameFormat === '2sets' && (
+                              <button onClick={()=>handleEndMatchClick(court.id, 'Draw')} className="flex-1 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[14px] font-bold text-slate-400">เสมอแบบมิตรภาพ (1-1)</button>
+                            )}                          
+                            <button onClick={() => {
+                              if(confirm('สุ่มทีมใหม่สำหรับคอร์ดนี้?')){
+                                const participants = [...court.teamA, ...court.teamB].sort(()=>Math.random()-0.5);
+                                setCourts(courts.map(c=>c.id===court.id?{...c, teamA:participants.slice(0,2), teamB:participants.slice(2,4)}:c));
+                              }
+                            }} className="bg-slate-100 text-slate-400 px-4 rounded-2xl text-[18px]">🔄</button>
+                         </div>
+              
+                         {/* ปุ่มสำหรับแอดมินกดบันทึกเวลาใหม่ (ย้ายเข้ามาอยู่ในเงื่อนไข busy) */}
+                         <button 
+                           onClick={() => startMatch(court.id)}
+                           className="w-full py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[12px] mt-2 hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent hover:border-blue-100"
+                         >
+                           🕒 บันทึก/แก้ไข เวลาเริ่มแข่ง
+                         </button>
+                      </div>
+                    ) : (
+                      /* ส่วนปุ่มกดตอนสนามว่าง */
+                      <button 
+                        onClick={async () => {
+                          const waiting = players.filter(p => p.status === 'waiting');
+                          if (waiting.length < 4) return setAlertModal({show:true, title:'เพื่อนยังมาไม่ครบจ้า', message:'ต้องการนักกีฬาที่ว่างอย่างน้อย 4 คนนะจ๊ะ', type: 'info'});
+                          
+                          const selected = [...waiting].sort((a,b)=>a.gamesPlayed - b.gamesPlayed).slice(0,4).sort(()=>Math.random()-0.5);
+                          const startTime = new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+                          const participantIds = selected.map(p => p.id);
+              
+                          // อัปเดต DB ทั้งผู้เล่นและสนาม (ใช้ start_time ให้ตรงกับคอลัมน์ใน Supabase)
+                          await supabase.from('players').update({ status: 'playing' }).in('id', participantIds);
+                          await supabase.from('courts').update({ 
+                            status: 'busy', 
+                            teamA: selected.slice(0,2), 
+                            teamB: selected.slice(2,4), 
+                            start_time: startTime 
+                          }).eq('id', court.id);
+                          // ไม่ต้อง fetchOnlineData() เพราะ Realtime จะจัดการเอง
+                        }} 
+                        className="w-full py-12 border-2 border-dashed border-indigo-100 rounded-[2.5rem] text-indigo-300 font-black text-[16px] flex flex-col items-center gap-2 active:scale-95 transition-all"
+                      >
+                        <span className="text-4xl">🏸</span>
+                        <span>จัดทีมลงสนาม</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>         
           </div>
         )}
 
@@ -842,6 +848,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
