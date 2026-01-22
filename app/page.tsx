@@ -357,6 +357,11 @@ const handleResetDay = async () => {
                 <div key={court.id} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-indigo-400 font-black text-[14px] uppercase tracking-tighter">Court {court.id}</span>
+                    {/* ส่วนแสดงผลเวลาเริ่มแข่ง */}
+<div className="flex items-center gap-1 bg-blue-50 px-3 py-1 rounded-full">
+  <Star size={12} className="fill-blue-500 text-blue-500" />
+  <span className="text-blue-600 font-black text-[12px]">{court.start_time || "--:--"}</span>
+</div>
                     <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${court.status === 'busy' ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-500'}`}>
                       {court.status === 'busy' ? `กำลังปล่อยพลัง (เริ่ม ${court.startTime})` : 'สนามว่างรอเพื่อนๆ'}
                     </span>
@@ -388,6 +393,13 @@ const handleResetDay = async () => {
                           }} className="bg-slate-100 text-slate-400 px-4 rounded-2xl text-[18px]">🔄</button>
                        </div>
                     </div>
+                  {/* ปุ่มสำหรับแอดมินกดบันทึกเวลาใหม่ */}
+<button 
+  onClick={() => startMatch(court.id)}
+  className="w-full py-3 bg-slate-50 text-slate-400 rounded-2xl font-black text-[12px] mt-2 hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent hover:border-blue-100"
+>
+  🕒 บันทึก/แก้ไข เวลาเริ่มแข่ง
+</button>
                   ) : (
                     /* ส่วนปุ่มกดตอนสนามว่าง (ที่แก้ไขใหม่) */
                     <button 
@@ -673,40 +685,45 @@ const handleResetDay = async () => {
                 <input type="file" ref={fileInputRef} onChange={(e)=>{const f=e.target.files[0]; if(f){const r=new FileReader(); r.onloadend=()=>setBankQRImage(r.result); r.readAsDataURL(f);}}} accept="image/*" className="hidden" />
               </div>
 
-              {/* 4. จัดการสนาม (Online) */}
-              <div className="space-y-4">
-                <p className="text-[12px] font-black text-pink-500 uppercase border-b border-pink-50 pb-2">4. จัดการเพิ่ม/ลดสนาม</p>
-                <div className="flex gap-2">
-                  <input value={newCourtNumber} onChange={(e)=>setNewCourtNumber(e.target.value)} placeholder="เลขสนาม เช่น 5" className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                  <button 
-                    onClick={async () => {
-                      if(!newCourtNumber) return;
-                      await supabase.from('courts').insert([{ id: newCourtNumber, status: 'available', teamA: [], teamB: [] }]);
-                      setNewCourtNumber('');
-                      await fetchOnlineData();
-                    }} 
-                    className="bg-emerald-500 text-white px-8 rounded-2xl font-black text-[20px] shadow-md shadow-emerald-100 active:scale-90 transition-all"
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {courts.map(c => (
-                    <span 
-                      key={c.id} 
-                      onClick={async () => {
-                        if(confirm(`ต้องการลบสนาม ${c.id} ใช่ไหม?`)) {
-                          await supabase.from('courts').delete().eq('id', c.id);
-                          await fetchOnlineData();
-                        }
-                      }} 
-                      className="bg-rose-50 text-rose-500 px-4 py-2 rounded-2xl text-[12px] font-black border border-rose-100 cursor-pointer active:bg-rose-500 active:text-white transition-all"
-                    >
-                      Court {c.id} ✕
-                    </span>
-                  ))}
-                </div>
-              </div>
+{/* 4. จัดการสนาม (Online) */}
+<div className="space-y-4">
+  <p className="text-[12px] font-black text-pink-500 uppercase border-b border-pink-50 pb-2">4. จัดการเพิ่ม/ลดสนาม</p>
+  
+  <div className="flex gap-2">
+    {/* ปุ่มเพิ่มสนามแบบใหม่ (ไม่ต้องพิมพ์เลข ID เอง ระบบรันให้อัตโนมัติ) */}
+    <button 
+      onClick={addCourt} 
+      className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[16px] shadow-md shadow-emerald-100 active:scale-95 transition-all flex items-center justify-center gap-2"
+    >
+      <PlusCircle size={20} /> เพิ่มสนามใหม่
+    </button>
+
+    {/* ปุ่มลบสนามล่าสุด */}
+    <button 
+      onClick={removeCourt} 
+      className="px-6 py-4 bg-rose-100 text-rose-500 rounded-2xl font-black active:scale-95 transition-all"
+    >
+      <MinusCircle size={20} />
+    </button>
+  </div>
+
+  {/* แสดงรายชื่อสนามที่มีอยู่ (กดเพื่อลบรายสนามได้) */}
+  <div className="flex flex-wrap gap-2">
+    {courts.map(c => (
+      <span 
+        key={c.id} 
+        onClick={async () => {
+          if(confirm(`ต้องการลบสนาม ${c.name} ใช่ไหม?`)) {
+            await supabase.from('courts').delete().eq('id', c.id);
+          }
+        }} 
+        className="bg-slate-50 text-slate-500 px-4 py-2 rounded-2xl text-[12px] font-black border border-slate-100 cursor-pointer hover:bg-rose-500 hover:text-white transition-all"
+      >
+        {c.name} ✕
+      </span>
+    ))}
+  </div>
+</div>
 
               <div className="pt-4 border-t border-slate-50">
                 <button 
@@ -825,6 +842,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
