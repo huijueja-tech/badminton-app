@@ -30,7 +30,7 @@ export default function BadmintonUltimatePro() {
 // --- [NEW] ระบบดึงข้อมูลและซิงค์แบบ Realtime ---
   useEffect(() => {
     fetchOnlineData(); // ดึงข้อมูลครั้งแรกเมื่อเปิดหน้าเว็บ
-
+    
     // เปิดช่องทาง Realtime เพื่อให้คอมและมือถือซิงค์กันอัตโนมัติ
     const channel = supabase
       .channel('db-realtime-changes')
@@ -43,7 +43,33 @@ export default function BadmintonUltimatePro() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [courts.length]);
+
+  // 2. ย้ายฟังก์ชันจัดการสนาม มาไว้ข้างนอก useEffect (เพื่อใช้กับปุ่ม onClick ได้)
+const addCourt = async () => {
+  const newName = `สนาม ${courts.length + 1}`;
+  await supabase.from('courts').insert([{ 
+    name: newName, 
+    status: 'available', 
+    teamA: [], 
+    teamB: [],
+    start_time: null 
+  }]);
+};
+
+const removeCourt = async () => {
+  if (courts.length === 0) return;
+  const lastCourt = courts[courts.length - 1];
+  await supabase.from('courts').delete().eq('id', lastCourt.id);
+};
+
+const startMatch = async (courtId) => {
+  const now = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  await supabase
+    .from('courts')
+    .update({ start_time: now, status: 'busy' })
+    .eq('id', courtId);
+};
 
   const fetchOnlineData = async () => {
     try {
@@ -799,6 +825,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
