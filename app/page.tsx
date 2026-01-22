@@ -108,7 +108,7 @@ export default function BadmintonUltimatePro() {
   // --- [4] LOGIC FUNCTIONS ---
   const handleAddPlayer = () => {
     if (!playerName.trim()) return;
-    if (players.length >= maxMembers) {
+    if (players.length >= maxPlayers) {
       setAlertModal({ 
         show: true, 
         title: 'ก๊วนอบอุ่นจนเต็มแล้วจ้า! 🏠', 
@@ -799,6 +799,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
