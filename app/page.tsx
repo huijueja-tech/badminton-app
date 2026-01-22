@@ -84,12 +84,9 @@ export default function BadmintonUltimatePro() {
 
   // --- [2] ADMIN & RULES ---
   const [gameRuleName, setGameRuleName] = useState('ก๊วนเสน่ห์ แบดมินตันอบอุ่น 🏸');
-  const [maxMembers, setMaxMembers] = useState(30);
   const [calcModel, setCalcModel] = useState('case1'); 
   const [gameFormat, setGameFormat] = useState('2sets'); 
   const [fixedEntryFee, setFixedEntryFee] = useState(90); 
-  const [shuttlePrice, setShuttlePrice] = useState(20);
-  const [fixedPricePerPerson, setFixedPricePerPerson] = useState(200); 
   const [totalCourtCost, setTotalCourtCost] = useState(0); 
   const [bankName, setBankName] = useState('ธนาคารกสิกรไทย');
   const [accountNumber, setAccountNumber] = useState('000-0-0000-000');
@@ -802,6 +799,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
