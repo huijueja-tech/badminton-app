@@ -616,7 +616,7 @@ const handleResetDay = async () => {
                   {calcModel === 'case2' && (
                     <div className="col-span-2">
                       <label className="text-[11px] text-slate-400 font-bold block text-center mb-1">ราคาเหมาจ่ายต่อคน (บาท)</label>
-                      <input type="number" value={costPerPerson} onChange={(e)=>setcostPerPerson(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-black text-center outline-none" />
+                      <input type="number" value={costPerPerson} onChange={(e)=>setCostPerPerson(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-black text-center outline-none" />
                     </div>
                   )}
 
@@ -799,6 +799,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
