@@ -112,7 +112,7 @@ export default function BadmintonUltimatePro() {
       setAlertModal({ 
         show: true, 
         title: 'ก๊วนอบอุ่นจนเต็มแล้วจ้า! 🏠', 
-        message: `ตอนนี้เพื่อนๆ มาจอยกันครบ ${maxMembers} คนแล้วจ้ะ ไว้รอบหน้ามาสนุกด้วยกันใหม่น้า`,
+        message: `ตอนนี้เพื่อนๆ มาจอยกันครบ ${maxPlayers} คนแล้วจ้ะ ไว้รอบหน้ามาสนุกด้วยกันใหม่น้า`,
         type: 'info'
       });
       return;
@@ -295,7 +295,7 @@ const handleResetDay = async () => {
       <header className="bg-white/95 backdrop-blur-md p-6 sticky top-0 z-40 border-b border-pink-50 flex justify-between items-center shadow-sm">
         <div>
           <h1 className="text-[20px] font-bold text-pink-500 leading-none">{gameRuleName}</h1>
-          <p className="text-[14px] text-slate-400 font-bold mt-1 uppercase tracking-widest">Active: {players.length}/{maxMembers}</p>
+          <p className="text-[14px] text-slate-400 font-bold mt-1 uppercase tracking-widest">Active: {players.length}/{maxPlayers}</p>
         </div>
         <div className="text-right">
           <span className="text-[10px] block font-bold text-slate-300">CALC MODEL</span>
@@ -578,7 +578,7 @@ const handleResetDay = async () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[11px] text-slate-400 font-bold ml-2">สมาชิกสูงสุด</label>
-                    <input type="number" value={maxMembers} onChange={(e)=>setMaxMembers(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-black outline-none" />
+                    <input type="number" value={maxPlayers} onChange={(e)=>setmaxPlayers(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-black outline-none" />
                   </div>
                   <div>
                     <label className="text-[11px] text-slate-400 font-bold ml-2">รูปแบบเซต</label>
@@ -799,6 +799,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
