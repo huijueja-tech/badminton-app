@@ -122,7 +122,7 @@ export default function BadmintonUltimatePro() {
 
   const calculateFee = (p) => {
     if (calcModel === 'case1') return fixedEntryFee + ((p.shuttlesInvolved || 0) * shuttlePrice);
-    if (calcModel === 'case2') return fixedPricePerPerson;
+    if (calcModel === 'case2') return costPerPerson;
     if (calcModel === 'case3') {
       // รวมจำนวนลูกจากทุกคน แล้วหาร 4 เพื่อให้ได้จำนวนลูกที่ใช้จริงในสนาม
       const totalShuttlesUsed = players.reduce((s, pl) => s + (pl.shuttlesInvolved || 0), 0) / 4;
@@ -220,7 +220,7 @@ const handleResetDay = async () => {
     summaryText += `--------------------------\n`;
     // เช็ก Logic การคิดเงิน (ดึงมาจาก Admin Rules ในส่วนที่ 2)
     if (calcModel === 'case1') summaryText += `📝 ค่าสนาม ${fixedEntryFee}.- + ลูกแบดลูกละ ${shuttlePrice}.-\n`;
-    else if (calcModel === 'case2') summaryText += `📝 ราคาเหมาจ่ายอบอุ่นคนละ ${fixedPricePerPerson}.-\n`;
+    else if (calcModel === 'case2') summaryText += `📝 ราคาเหมาจ่ายอบอุ่นคนละ ${costPerPerson}.-\n`;
     else if (calcModel === 'case3') summaryText += `📝 หารเฉลี่ยค่าความสนุกเท่ากันทุกคนจ้า\n`;
     
     summaryText += `\n💰 รวมยอดวันนี้: ${totalIncome.toFixed(0)} บาท\n`;
@@ -616,7 +616,7 @@ const handleResetDay = async () => {
                   {calcModel === 'case2' && (
                     <div className="col-span-2">
                       <label className="text-[11px] text-slate-400 font-bold block text-center mb-1">ราคาเหมาจ่ายต่อคน (บาท)</label>
-                      <input type="number" value={fixedPricePerPerson} onChange={(e)=>setFixedPricePerPerson(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-black text-center outline-none" />
+                      <input type="number" value={costPerPerson} onChange={(e)=>setcostPerPerson(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-black text-center outline-none" />
                     </div>
                   )}
 
@@ -799,6 +799,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
