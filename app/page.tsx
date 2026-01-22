@@ -21,18 +21,6 @@ export default function BadmintonUltimatePro() {
   const [confirmModal, setConfirmModal] = useState({ show: false, name: '' });
   const [shuttleModal, setShuttleModal] = useState({ show: false, courtId: null, winner: null });
 
-  ลบส่วนนี้เท่านั้น ใช่มั๊ย
-
-// --- [NEW] เพิ่มส่วนดึงข้อมูลจาก Supabase เมื่อเปิดหน้าเว็บ ---
-
-  useEffect(() => {
-
-    fetchOnlineData();
-
-  }, []);
-
-แล้ววาง
-
 // --- [NEW] ระบบดึงข้อมูลและซิงค์แบบ Realtime ---
   useEffect(() => {
     fetchOnlineData(); // ดึงข้อมูลครั้งแรกเมื่อเปิดหน้าเว็บ
@@ -808,6 +796,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
