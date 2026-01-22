@@ -21,26 +21,71 @@ export default function BadmintonUltimatePro() {
   const [confirmModal, setConfirmModal] = useState({ show: false, name: '' });
   const [shuttleModal, setShuttleModal] = useState({ show: false, courtId: null, winner: null });
 
-  // --- [NEW] เพิ่มส่วนดึงข้อมูลจาก Supabase เมื่อเปิดหน้าเว็บ ---
+  ลบส่วนนี้เท่านั้น ใช่มั๊ย
+
+// --- [NEW] เพิ่มส่วนดึงข้อมูลจาก Supabase เมื่อเปิดหน้าเว็บ ---
+
   useEffect(() => {
+
     fetchOnlineData();
+
+  }, []);
+
+แล้ววาง
+
+// --- [NEW] ระบบดึงข้อมูลและซิงค์แบบ Realtime ---
+  useEffect(() => {
+    fetchOnlineData(); // ดึงข้อมูลครั้งแรกเมื่อเปิดหน้าเว็บ
+
+    // เปิดช่องทาง Realtime เพื่อให้คอมและมือถือซิงค์กันอัตโนมัติ
+    const channel = supabase
+      .channel('db-realtime-changes')
+      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+        console.log('Database updated:', payload);
+        fetchOnlineData(); // เมื่อมีการเปลี่ยนแปลงใน DB ให้โหลดข้อมูลใหม่ทันที
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchOnlineData = async () => {
-    // ดึงข้อมูลรายชื่อนักกีฬา
-    const { data: pData } = await supabase
-      .from('players')
-      .select('*')
-      .order('created_at', { ascending: true });
-    
-    // ดึงข้อมูลสนาม
-    const { data: cData } = await supabase
-      .from('courts')
-      .select('*')
-      .order('id', { ascending: true });
+    try {
+      // 1. ดึงข้อมูลรายชื่อนักกีฬา
+      const { data: pData } = await supabase
+        .from('players')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      // 2. ดึงข้อมูลสนาม
+      const { data: cData } = await supabase
+        .from('courts')
+        .select('*')
+        .order('id', { ascending: true });
 
-    if (pData) setPlayers(pData);
-    if (cData) setCourts(cData);
+      // 3. ดึงข้อมูลการตั้งค่าจากตาราง settings (ID: 1)
+      const { data: sData } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('id', 1)
+        .single();
+
+      // อัปเดตข้อมูลนักกีฬาและสนาม
+      if (pData) setPlayers(pData);
+      if (cData) setCourts(cData);
+      
+      // อัปเดตค่าตั้งค่าให้ตรงกันทุกเครื่อง (คอม/มือถือ)
+      if (sData) {
+        setMaxPlayers(sData.maxPlayers);
+        setCostPerPerson(sData.costPerPerson);
+        setShuttlePrice(sData.shuttlePrice);
+        if (sData.matchType) setMatchType(sData.matchType);
+      }
+    } catch (err) {
+      console.error('Error fetching online data:', err);
+    }
   };
 
   // --- [2] ADMIN & RULES ---
@@ -763,6 +808,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
