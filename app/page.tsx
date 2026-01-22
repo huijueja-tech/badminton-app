@@ -16,6 +16,12 @@ export default function BadmintonUltimatePro() {
   const [courts, setCourts] = useState([]);
   const [newCourtNumber, setNewCourtNumber] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // --- [ADD] เพิ่ม States สำหรับรองรับการตั้งค่าจาก Supabase ---
+  const [maxPlayers, setMaxPlayers] = useState(30);
+  const [costPerPerson, setCostPerPerson] = useState(150);
+  const [shuttlePrice, setShuttlePrice] = useState(30);
+  const [matchType, setMatchType] = useState('random');
   
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' });
   const [confirmModal, setConfirmModal] = useState({ show: false, name: '' });
@@ -796,6 +802,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
