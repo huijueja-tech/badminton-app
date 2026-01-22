@@ -246,7 +246,7 @@ export default function BadmintonUltimatePro() {
           </div>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-[10px] font-black bg-indigo-50 text-indigo-400 px-3 py-1 rounded-full uppercase mb-1">
+          <span className="text-[12px] font-black bg-indigo-50 text-indigo-400 px-3 py-1 rounded-full uppercase mb-1">
             {calcModel === 'case1' ? 'Actual Shuttle' : 'Fixed Price'}
           </span>
           <div className="flex items-center gap-1">
@@ -287,7 +287,7 @@ export default function BadmintonUltimatePro() {
             <div className="space-y-4 pt-2">
               <div className="flex justify-between items-center px-4">
                 <h3 className="font-bold text-slate-400 text-[12px] uppercase tracking-widest">ความเคลื่อนไหวในสนาม</h3>
-                <div className="flex gap-2 text-[10px] font-bold">
+                <div className="flex gap-2 text-[12px] font-bold">
                    <span className="text-emerald-500">ว่าง {courts.filter(c=>c.status==='available').length}</span>
                    <span className="text-orange-500">แข่ง {courts.filter(c=>c.status==='busy').length}</span>
                 </div>
@@ -354,7 +354,7 @@ export default function BadmintonUltimatePro() {
                   
                   <div className="mt-8 flex justify-between items-end">
                      <div>
-                        <p className="text-[10px] font-bold opacity-60 uppercase">ยอดรวมทั้งหมด</p>
+                        <p className="text-[12px] font-bold opacity-60 uppercase">ยอดรวมทั้งหมด</p>
                         <p className="text-[32px] font-black leading-none">฿{players.reduce((sum, p) => sum + calculateFee(p), 0).toLocaleString()}</p>
                      </div>
                      <div className="flex gap-2">
@@ -411,7 +411,7 @@ export default function BadmintonUltimatePro() {
                         </button>
                         <div>
                           <p className={`font-bold text-[16px] ${p.paid ? 'text-slate-300 line-through' : 'text-slate-700'}`}>{p.name}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">เล่น {p.gamesPlayed} | แบด {p.shuttlesInvolved} ลูก</p>
+                          <p className="text-[12px] font-bold text-slate-400 uppercase">เล่น {p.gamesPlayed} | แบด {p.shuttlesInvolved} ลูก</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -442,14 +442,14 @@ export default function BadmintonUltimatePro() {
                   <div key={p.id} className="p-6 flex items-center justify-between border-b border-slate-50 last:border-0">
                     <div className="flex items-center gap-4">
                       <div className="relative">
-                        <span className={`absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-white shadow-md ${i===0 ? 'bg-yellow-400 text-white' : i===1 ? 'bg-slate-300 text-white' : i===2 ? 'bg-orange-300 text-white' : 'bg-white text-slate-300'}`}>
+                        <span className={`absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-black border-2 border-white shadow-md ${i===0 ? 'bg-yellow-400 text-white' : i===1 ? 'bg-slate-300 text-white' : i===2 ? 'bg-orange-300 text-white' : 'bg-white text-slate-300'}`}>
                           {i+1}
                         </span>
                         <img src={p.avatar} alt={p.name} className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100" />
                       </div>
                       <div>
                         <p className="font-bold text-slate-700 text-[17px]">{p.name}</p>
-                        <p className="text-[10px] font-bold text-emerald-500 uppercase">WIN {p.wins} / PLAY {p.gamesPlayed}</p>
+                        <p className="text-[12px] font-bold text-emerald-500 uppercase">WIN {p.wins} / PLAY {p.gamesPlayed}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -473,11 +473,11 @@ export default function BadmintonUltimatePro() {
                   </h4>
                   <div className="grid grid-cols-1 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 ml-4">ชื่อกลุ่ม</label>
+                      <label className="text-[12px] font-bold text-slate-400 ml-4">ชื่อกลุ่ม</label>
                       <input value={gameRuleName} onChange={(e)=>setGameRuleName(e.target.value)} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-100" />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 ml-4">จำนวนสมาชิกสูงสุด (คน)</label>
+                      <label className="text-[12px] font-bold text-slate-400 ml-4">จำนวนสมาชิกสูงสุด (คน)</label>
                       <input type="number" value={maxMembers} onChange={(e)=>setMaxMembers(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
                     </div>
                   </div>
@@ -649,7 +649,7 @@ export default function BadmintonUltimatePro() {
 
       {alertModal.show && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 text-center shadow-2xl border-b-[10px] border-indigo-500">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 text-center shadow-2xl border-b-[12px] border-indigo-500">
             <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-500">
                <AlertCircle size={32} />
             </div>
@@ -662,6 +662,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
