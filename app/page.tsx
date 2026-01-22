@@ -578,7 +578,7 @@ const handleResetDay = async () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[11px] text-slate-400 font-bold ml-2">สมาชิกสูงสุด</label>
-                    <input type="number" value={maxPlayers} onChange={(e)=>setmaxPlayers(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-black outline-none" />
+                    <input type="number" value={maxPlayers} onChange={(e)=>setMaxPlayers(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-black outline-none" />
                   </div>
                   <div>
                     <label className="text-[11px] text-slate-400 font-bold ml-2">รูปแบบเซต</label>
@@ -799,6 +799,7 @@ const handleResetDay = async () => {
   </div>
 );
 }
+
 
 
 
