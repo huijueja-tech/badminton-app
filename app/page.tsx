@@ -26,7 +26,7 @@ export default function BadmintonUltimatePro() {
   const [confirmModal, setConfirmModal] = useState({ show: false, name: '' });
   const [shuttleModal, setShuttleModal] = useState({ show: false, courtId: null, winner: null });
   
-  // วางไว้แถวๆ const [players, setPlayers] = useState([]);
+  // เพิ่ม State สำหรับเวลา
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -250,7 +250,8 @@ export default function BadmintonUltimatePro() {
   navigator.clipboard.writeText(text);
   setAlertModal({ show: true, title: 'คัดลอกสำเร็จ! ✅', message: 'สรุปยอดถูกก๊อปปี้ลงเครื่องแล้ว นำไปวางในกลุ่ม Line ได้เลยจ้า', type: 'success' });
 };
-
+  
+  // ฟังก์ชันแปลงวันที่เป็นภาษาไทย
   const formatThaiDate = (date) => {
   const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
   const dayName = days[date.getDay()];
@@ -267,7 +268,55 @@ export default function BadmintonUltimatePro() {
   });
   return `วัน${dayName} ที่ ${dateStr} เวลา ${timeStr} น.`;
 };
-
+  // สร้างฟังก์ชันล้างข้อมูลพร้อมบันทึกสถิติ
+  const handleResetDay = async () => {
+    if (!confirm('ต้องการล้างข้อมูลเพื่อเริ่มวันใหม่ใช่หรือไม่? (ระบบจะอัปเดตสถิติตลอดกาลให้ก่อนลบ)')) return;
+  
+    try {
+      // 1. วนลูปเพื่ออัปเดตสถิติตลอดกาลลงในตาราง player_stats (ถ้ามี)
+      for (const p of players) {
+        const { data: existingStat } = await supabase
+          .from('player_stats')
+          .select('*')
+          .eq('name', p.name)
+          .single();
+  
+        if (existingStat) {
+          // มีชื่อเดิมอยู่แล้ว ให้บวกเพิ่ม
+          await supabase.from('player_stats').update({
+            total_games: existingStat.total_games + p.gamesPlayed,
+            total_wins: existingStat.total_wins + p.wins,
+            total_points: existingStat.total_points + p.points
+          }).eq('name', p.name);
+        } else {
+          // ชื่อใหม่ ให้สร้างแถวใหม่
+          await supabase.from('player_stats').insert([{
+            name: p.name,
+            total_games: p.gamesPlayed,
+            total_wins: p.wins,
+            total_points: p.points
+          }]);
+        }
+      }
+  
+      // 2. ลบข้อมูลในตารางผู้เล่นรายวัน (เคลียร์หน้าจอ)
+      await supabase.from('players').delete().neq('id', 0); // ลบทุกคน
+      
+      // 3. รีเซ็ตสถานะสนาม
+      await supabase.from('courts').update({
+        status: 'available',
+        teamA: [],
+        teamB: [],
+        start_time: null
+      }).neq('id', 0);
+  
+      alert('บันทึกสถิติและล้างข้อมูลเรียบร้อยแล้วจ้า! 🏸');
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการล้างข้อมูล');
+    }
+  };
+  
   const filteredPlayers = useMemo(() => {
     return players.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [players, searchQuery]);
@@ -291,14 +340,14 @@ export default function BadmintonUltimatePro() {
           <div className="w-10 h-10 bg-pink-500 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg shadow-pink-100">🏸</div>
           <div>
             <h1 className="text-[18px] font-bold text-pink-500 leading-none">{gameRuleName}</h1>
-            {/* บรรทัดสมาชิก */}
-            <p className="text-[12px] text-slate-400 font-bold uppercase tracking-widest">
-            สมาชิก {players.length} / {maxMembers} คน
-            </p>
             {/* บรรทัดวันที่/เวลาที่เพิ่มใหม่ */}
             <p className="text-[11px] text-pink-300 font-bold mt-0.5">
             {formatThaiDate(currentTime)}
-            </p>   
+            </p>  
+            {/* บรรทัดสมาชิก */}
+            <p className="text-[12px] text-slate-400 font-bold uppercase tracking-widest">
+            สมาชิกวันนี้ {players.length} / {maxMembers} คน
+            </p>
           </div>
         </div>
         <div className="flex flex-col items-end">
@@ -400,79 +449,144 @@ export default function BadmintonUltimatePro() {
 
         {/* --- DASHBOARD TAB --- */}
         {activeTab === 'dashboard' && (
-  <div className="space-y-6 animate-in slide-in-from-right duration-500">
-    {/* การ์ดบัญชีธนาคารเดิม */}
-    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl relative overflow-hidden">
-      <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-widest">{bankName}</p>
-      <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
-      <p className="text-[14px] font-bold opacity-80 mb-6">{accountName}</p>
-      <button 
-        onClick={copyLineSummary}
-        className="relative z-10 w-full py-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl flex items-center justify-center gap-2 font-bold text-[14px] hover:bg-white/30"
-      >
-        <span className="text-xl">📋</span> คัดลอกสรุปยอดลง Line
-      </button>
-    </div>
-
-    {/* รายชื่อผู้เล่นและการจัดการเงิน */}
-    <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden">
-      <div className="p-6 border-b border-slate-50">
-        <input 
-          value={searchQuery}
-          onChange={(e)=>setSearchQuery(e.target.value)}
-          placeholder="ค้นหาชื่อเพื่อน..."
-          className="w-full p-4 bg-slate-50 rounded-2xl outline-none text-[15px] font-bold text-slate-600 border-2 border-transparent focus:border-indigo-100"
-        />
-      </div>
-
-      <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto font-mali">
-        {filteredPlayers.map(p => (
-          <div key={p.id} className={`p-5 flex flex-col gap-3 transition-all ${p.paid ? 'bg-emerald-50/30' : 'bg-white'}`}>
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <img src={p.avatar} className="w-12 h-12 rounded-xl bg-slate-100" />
-                <div>
-                  <p className="font-bold text-[16px] text-slate-700">{p.name}</p>
-                  <p className="text-[10px] font-bold text-slate-400">เล่น {p.gamesPlayed} | แบด {p.shuttlesInvolved} ลูก</p>
+          <div className="space-y-6 animate-in slide-in-from-right duration-500 pb-20">
+            
+            {/* 1. ส่วนบัตรธนาคารและปุ่ม Copy Line */}
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+              <div className="relative z-10">
+                <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-[0.2em]">{bankName}</p>
+                <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
+                <p className="text-[14px] font-bold opacity-80 mb-6">{accountName}</p>
+                
+                <div className="flex gap-3">
+                  <button 
+                    onClick={copyLineSummary}
+                    className="flex-1 py-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl flex items-center justify-center gap-2 font-bold text-[14px] hover:bg-white/30 transition-all active:scale-95"
+                  >
+                    📋 คัดลอกสรุปยอด (Line)
+                  </button>
                 </div>
               </div>
-              <div className="flex flex-col items-end">
-                <p className={`font-black text-[20px] ${p.paid ? 'text-emerald-500' : 'text-indigo-600'}`}>฿{calculateFee(p).toFixed(0)}</p>
-                {/* ปุ่มลบผู้เล่น (กู้คืนมาให้แล้ว) */}
+              <div className="absolute -right-10 -bottom-10 opacity-10">
+                 <QrCode size={180} />
+              </div>
+            </div>
+        
+            {/* 2. QR Code (ถ้ามี) */}
+            {bankQRImage && (
+              <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 text-center animate-in zoom-in duration-300">
+                 <img src={bankQRImage} alt="QR" className="mx-auto w-44 h-44 rounded-3xl border-4 border-slate-50" />
+                 <p className="mt-3 text-[11px] font-bold text-slate-300 uppercase tracking-widest">Scan to Pay</p>
+              </div>
+            )}
+        
+            {/* 3. รายชื่อผู้เล่นและการจัดการเงิน (ไม่มี Scroll แยก) */}
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden">
+              <div className="p-6 border-b border-slate-50 bg-slate-50/30">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-slate-700 text-[16px]">ตรวจสอบการชำระเงิน</h3>
+                  <span className="text-[11px] font-black text-indigo-400 bg-indigo-50 px-3 py-1 rounded-full">
+                    ค้างชำระ: {players.filter(p => !p.paid).length} คน
+                  </span>
+                </div>
+                <input 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="ค้นหาชื่อเพื่อนเพื่อเช็คยอด..."
+                  className="w-full p-4 bg-white rounded-2xl outline-none text-[15px] font-bold text-slate-600 border-2 border-transparent focus:border-indigo-100 shadow-inner transition-all"
+                />
+              </div>
+        
+              {/* ส่วนรายชื่อ: แสดงผลยาวลงไปตามจำนวนคน ไม่มีการดัก Scroll ที่นี่ */}
+              <div className="divide-y divide-slate-50">
+                {filteredPlayers.length > 0 ? (
+                  filteredPlayers.map(p => (
+                    <div key={p.id} className={`p-6 flex flex-col gap-4 transition-all ${p.paid ? 'bg-emerald-50/30 opacity-70' : 'bg-white'}`}>
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <img src={p.avatar} className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm" />
+                            {p.paid && (
+                              <div className="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full p-1 shadow-md">
+                                <CheckCircle2 size={12} />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className={`font-bold text-[18px] ${p.paid ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{p.name}</p>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+                              เกม: {p.gamesPlayed} | ชนะ: {p.wins} | แบด: {p.shuttlesInvolved} ลูก
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end">
+                          <p className={`font-black text-[22px] leading-none ${p.paid ? 'text-slate-300' : 'text-indigo-600'}`}>
+                            ฿{calculateFee(p).toFixed(0)}
+                          </p>
+                          {/* ปุ่มลบผู้เล่นรายบุคคล */}
+                          <button 
+                            onClick={async () => {
+                              if(confirm(`ลบ ${p.name} ออกจากรายการวันนี้? (ข้อมูลสถิติวันนี้จะหายไปด้วย)`)) {
+                                await supabase.from('players').delete().eq('id', p.id);
+                              }
+                            }}
+                            className="mt-2 text-rose-300 hover:text-rose-500 transition-colors p-1"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+        
+                      {/* ปุ่มเลือกประเภทการจ่ายเงิน */}
+                      <div className="flex gap-2 mt-1">
+                        <button 
+                          onClick={async () => {
+                            const nextStatus = !(p.paid && p.pay_type === 'transfer');
+                            await supabase.from('players').update({ paid: nextStatus, pay_type: 'transfer' }).eq('id', p.id);
+                          }}
+                          className={`flex-1 py-3 rounded-2xl text-[12px] font-black border-2 transition-all flex items-center justify-center gap-2 ${p.paid && p.pay_type === 'transfer' ? 'bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-100' : 'bg-white border-slate-100 text-slate-400'}`}
+                        >
+                          <LayoutDashboard size={14} /> {p.paid && p.pay_type === 'transfer' ? 'จ่ายโอนแล้ว' : 'โอนเงิน'}
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            const nextStatus = !(p.paid && p.pay_type === 'cash');
+                            await supabase.from('players').update({ paid: nextStatus, pay_type: 'cash' }).eq('id', p.id);
+                          }}
+                          className={`flex-1 py-3 rounded-2xl text-[12px] font-black border-2 transition-all flex items-center justify-center gap-2 ${p.paid && p.pay_type === 'cash' ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white border-slate-100 text-slate-400'}`}
+                        >
+                          <Wallet size={14} /> {p.paid && p.pay_type === 'cash' ? 'จ่ายสดแล้ว' : 'เงินสด'}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-20 text-center text-slate-300 font-bold">
+                    <p className="text-4xl mb-2">🔍</p>
+                    <p>ไม่พบชื่อเพื่อนที่ค้นหาจ้า</p>
+                  </div>
+                )}
+              </div>
+            </div>
+        
+            {/* 4. ปุ่มล้างข้อมูลท้ายหน้า (Reset Day) */}
+            <div className="px-4 pb-12 pt-4">
+              <div className="bg-rose-50/50 p-6 rounded-[2.5rem] border-2 border-dashed border-rose-100 text-center space-y-4">
+                <div>
+                  <p className="text-rose-500 font-black text-[16px]">ปิดยอดก๊วนวันนี้ 🏁</p>
+                  <p className="text-rose-300 text-[11px] font-bold">ระบบจะโอนคะแนนไปเก็บที่สถิติตลอดกาลให้จ้า</p>
+                </div>
                 <button 
-                  onClick={async () => {
-                    if(confirm(`ลบ ${p.name} ออกจากก๊วนวันนี้?`)) {
-                      await supabase.from('players').delete().eq('id', p.id);
-                    }
-                  }}
-                  className="text-rose-300 hover:text-rose-500 mt-1"
+                  onClick={handleResetDay}
+                  className="w-full py-4 bg-rose-500 text-white rounded-2xl font-black text-[16px] shadow-lg shadow-rose-100 active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={20} /> ล้างข้อมูลและบันทึกสถิติ
                 </button>
               </div>
             </div>
-
-            {/* ปุ่มจัดการการชำระเงิน โอน/เงินสด */}
-            <div className="flex gap-2">
-              <button 
-                onClick={async () => await supabase.from('players').update({ paid: !p.paid, pay_type: 'transfer' }).eq('id', p.id)}
-                className={`flex-1 py-2 rounded-xl text-[12px] font-black border-2 transition-all ${p.paid && p.pay_type === 'transfer' ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white border-slate-100 text-slate-400'}`}
-              >
-                {p.paid && p.pay_type === 'transfer' ? '✅ โอนแล้ว' : '🏦 โอนเงิน'}
-              </button>
-              <button 
-                onClick={async () => await supabase.from('players').update({ paid: !p.paid, pay_type: 'cash' }).eq('id', p.id)}
-                className={`flex-1 py-2 rounded-xl text-[12px] font-black border-2 transition-all ${p.paid && p.pay_type === 'cash' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-100 text-slate-400'}`}
-              >
-                {p.paid && p.pay_type === 'cash' ? '✅ จ่ายสดแล้ว' : '💵 เงินสด'}
-              </button>
-            </div>
           </div>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
+        )}
 
         {/* --- RANKING TAB --- */}
         {activeTab === 'ranking' && (
@@ -712,6 +826,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
