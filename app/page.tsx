@@ -54,7 +54,7 @@ export default function BadmintonUltimatePro() {
   // --- [3] FETCH & REALTIME ---
   const fetchOnlineData = async () => {
     try {
-      const { data: p, error: pErr } = await supabase.from('players').select('*').order('points', { ascending: false });
+      const { data: p, error: pErr } = await supabase.from('players').select('*').order('created_at', { ascending: true }); //เรียงลำดับผู้เล่น
       if (p) setPlayers(p);
       
       const { data: c, error: cErr } = await supabase.from('courts').select('*').order('name', { ascending: true });
@@ -826,6 +826,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
