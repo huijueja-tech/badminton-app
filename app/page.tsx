@@ -25,6 +25,16 @@ export default function BadmintonUltimatePro() {
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' });
   const [confirmModal, setConfirmModal] = useState({ show: false, name: '' });
   const [shuttleModal, setShuttleModal] = useState({ show: false, courtId: null, winner: null });
+  
+  // วางไว้แถวๆ const [players, setPlayers] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // --- [2] ADMIN & RULES STATES ---
   const [gameRuleName, setGameRuleName] = useState('ก๊วนเสน่ห์ แบดมินตันอบอุ่น 🏸');
@@ -241,6 +251,23 @@ export default function BadmintonUltimatePro() {
   setAlertModal({ show: true, title: 'คัดลอกสำเร็จ! ✅', message: 'สรุปยอดถูกก๊อปปี้ลงเครื่องแล้ว นำไปวางในกลุ่ม Line ได้เลยจ้า', type: 'success' });
 };
 
+  const formatThaiDate = (date) => {
+  const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+  const dayName = days[date.getDay()];
+  const dateStr = date.toLocaleDateString('th-TH', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  });
+  const timeStr = date.toLocaleTimeString('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  return `วัน${dayName} ที่ ${dateStr} เวลา ${timeStr} น.`;
+};
+
   const filteredPlayers = useMemo(() => {
     return players.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [players, searchQuery]);
@@ -264,9 +291,14 @@ export default function BadmintonUltimatePro() {
           <div className="w-10 h-10 bg-pink-500 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg shadow-pink-100">🏸</div>
           <div>
             <h1 className="text-[18px] font-bold text-pink-500 leading-none">{gameRuleName}</h1>
-            <p className="text-[12px] text-slate-400 font-bold mt-1 uppercase tracking-widest">
-              สมาชิก {players.length} / {maxMembers} คน
+            {/* บรรทัดสมาชิก */}
+            <p className="text-[12px] text-slate-400 font-bold uppercase tracking-widest">
+            สมาชิก {players.length} / {maxMembers} คน
             </p>
+            {/* บรรทัดวันที่/เวลาที่เพิ่มใหม่ */}
+            <p className="text-[11px] text-pink-300 font-bold mt-0.5">
+            {formatThaiDate(currentTime)}
+            </p>   
           </div>
         </div>
         <div className="flex flex-col items-end">
@@ -322,7 +354,7 @@ export default function BadmintonUltimatePro() {
                   <div className="flex justify-between items-center mb-5">
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${court.status === 'busy' ? 'bg-orange-400 animate-pulse' : 'bg-emerald-400'}`}></div>
-                      <span className="text-indigo-500 font-black text-[16px] uppercase">{court.name}</span>
+                      <span className="text-indigo-500 font-black text-[16px] uppercase"> คอร์ด # {court.name}</span>
                     </div>
                     {court.status === 'busy' && (
                       <div className="flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded-full">
@@ -680,6 +712,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
