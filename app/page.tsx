@@ -217,6 +217,30 @@ export default function BadmintonUltimatePro() {
     else alert('บันทึกข้อมูลเรียบร้อยแล้วจ้า! 💖');
   };
 
+  const copyLineSummary = () => {
+  const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long' });
+  let text = `🏸 *** สรุปยอดก๊วนเสน่ห์ (${dateStr}) *** 🏸\n`;
+  text += `------------------------------\n`;
+  
+  players.forEach((p, i) => {
+    const fee = calculateFee(p);
+    const status = p.paid ? (p.pay_type === 'cash' ? '✅ [เงินสด]' : '✅ [โอน]') : '⏳ [ยังไม่จ่าย]';
+    text += `${i + 1}. ${p.name}: ${fee}.- ${status}\n`;
+  });
+
+  const total = players.reduce((sum, p) => sum + calculateFee(p), 0);
+  text += `------------------------------\n`;
+  text += `💰 รวมยอดทั้งหมด: ${total} บาท\n`;
+  text += `🏦 ${bankName}\n`;
+  text += `💳 ${accountNumber}\n`;
+  text += `👤 ${accountName}\n`;
+  text += `------------------------------\n`;
+  text += `ขอบคุณเพื่อนๆ ทุกคนมากจ้า! 🙏✨`;
+
+  navigator.clipboard.writeText(text);
+  setAlertModal({ show: true, title: 'คัดลอกสำเร็จ! ✅', message: 'สรุปยอดถูกก๊อปปี้ลงเครื่องแล้ว นำไปวางในกลุ่ม Line ได้เลยจ้า', type: 'success' });
+};
+
   const filteredPlayers = useMemo(() => {
     return players.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [players, searchQuery]);
@@ -656,6 +680,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
