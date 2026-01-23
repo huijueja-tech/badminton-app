@@ -344,85 +344,79 @@ export default function BadmintonUltimatePro() {
 
         {/* --- DASHBOARD TAB --- */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-6 animate-in slide-in-from-right duration-500">
-             {/* บัตรสรุปเงิน */}
-             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
-                <div className="relative z-10">
-                  <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-[0.2em]">{bankName}</p>
-                  <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
-                  <p className="text-[14px] font-bold opacity-80">{accountName}</p>
-                  
-                  <div className="mt-8 flex justify-between items-end">
-                     <div>
-                        <p className="text-[12px] font-bold opacity-60 uppercase">ยอดรวมทั้งหมด</p>
-                        <p className="text-[32px] font-black leading-none">฿{players.reduce((sum, p) => sum + calculateFee(p), 0).toLocaleString()}</p>
-                     </div>
-                     <div className="flex gap-2">
-                        <div className="bg-white/10 px-3 py-1 rounded-xl border border-white/20 text-center">
-                           <p className="text-[8px] font-bold opacity-60 uppercase">จ่ายแล้ว</p>
-                           <p className="text-[14px] font-black">{players.filter(p=>p.paid).length}</p>
-                        </div>
-                        <div className="bg-white/10 px-3 py-1 rounded-xl border border-white/20 text-center">
-                           <p className="text-[8px] font-bold opacity-60 uppercase">ค้างชำระ</p>
-                           <p className="text-[14px] font-black">{players.filter(p=>!p.paid).length}</p>
-                        </div>
-                     </div>
-                  </div>
-                </div>
-                <div className="absolute -right-10 -bottom-10 opacity-10">
-                   <QrCode size={200} />
-                </div>
-             </div>
+  <div className="space-y-6 animate-in slide-in-from-right duration-500">
+    {/* การ์ดบัญชีธนาคารเดิม */}
+    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl relative overflow-hidden">
+      <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-widest">{bankName}</p>
+      <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
+      <p className="text-[14px] font-bold opacity-80 mb-6">{accountName}</p>
+      <button 
+        onClick={copyLineSummary}
+        className="relative z-10 w-full py-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl flex items-center justify-center gap-2 font-bold text-[14px] hover:bg-white/30"
+      >
+        <span className="text-xl">📋</span> คัดลอกสรุปยอดลง Line
+      </button>
+    </div>
 
-             {/* QR Code Section */}
-             {bankQRImage && (
-               <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 text-center">
-                  <img src={bankQRImage} alt="QR" className="mx-auto w-48 h-48 rounded-3xl border-4 border-slate-50" />
-                  <p className="mt-3 text-[12px] font-bold text-slate-300">สแกนจ่ายตรงนี้ได้เลยจ้า</p>
-               </div>
-             )}
+    {/* รายชื่อผู้เล่นและการจัดการเงิน */}
+    <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden">
+      <div className="p-6 border-b border-slate-50">
+        <input 
+          value={searchQuery}
+          onChange={(e)=>setSearchQuery(e.target.value)}
+          placeholder="ค้นหาชื่อเพื่อน..."
+          className="w-full p-4 bg-slate-50 rounded-2xl outline-none text-[15px] font-bold text-slate-600 border-2 border-transparent focus:border-indigo-100"
+        />
+      </div>
 
-             {/* รายชื่อนักกีฬา */}
-             <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden">
-                <div className="p-6 border-b border-slate-50 flex flex-col gap-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-700 text-[16px]">ตรวจสอบการชำระเงิน</h3>
-                    <button onClick={fetchOnlineData} className="text-slate-300 hover:text-indigo-400 transition-colors">
-                      <Search size={18} />
-                    </button>
-                  </div>
-                  <input 
-                    value={searchQuery}
-                    onChange={(e)=>setSearchQuery(e.target.value)}
-                    placeholder="ค้นหาชื่อเพื่อนเพื่อติ๊กจ่ายเงิน..."
-                    className="w-full p-3 bg-slate-50 rounded-xl outline-none text-[14px] font-bold text-slate-600"
-                  />
+      <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto font-mali">
+        {filteredPlayers.map(p => (
+          <div key={p.id} className={`p-5 flex flex-col gap-3 transition-all ${p.paid ? 'bg-emerald-50/30' : 'bg-white'}`}>
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <img src={p.avatar} className="w-12 h-12 rounded-xl bg-slate-100" />
+                <div>
+                  <p className="font-bold text-[16px] text-slate-700">{p.name}</p>
+                  <p className="text-[10px] font-bold text-slate-400">เล่น {p.gamesPlayed} | แบด {p.shuttlesInvolved} ลูก</p>
                 </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <p className={`font-black text-[20px] ${p.paid ? 'text-emerald-500' : 'text-indigo-600'}`}>฿{calculateFee(p).toFixed(0)}</p>
+                {/* ปุ่มลบผู้เล่น (กู้คืนมาให้แล้ว) */}
+                <button 
+                  onClick={async () => {
+                    if(confirm(`ลบ ${p.name} ออกจากก๊วนวันนี้?`)) {
+                      await supabase.from('players').delete().eq('id', p.id);
+                    }
+                  }}
+                  className="text-rose-300 hover:text-rose-500 mt-1"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
 
-                <div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">
-                  {filteredPlayers.map(p => (
-                    <div key={p.id} className={`p-5 flex justify-between items-center transition-all ${p.paid ? 'bg-emerald-50/50 opacity-60' : 'bg-white'}`}>
-                      <div className="flex items-center gap-4">
-                        <button 
-                          onClick={async () => await supabase.from('players').update({ paid: !p.paid }).eq('id', p.id)}
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${p.paid ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300'}`}
-                        >
-                          {p.paid ? <CheckCircle2 size={20} /> : <Circle size={20} />}
-                        </button>
-                        <div>
-                          <p className={`font-bold text-[16px] ${p.paid ? 'text-slate-300 line-through' : 'text-slate-700'}`}>{p.name}</p>
-                          <p className="text-[12px] font-bold text-slate-400 uppercase">เล่น {p.gamesPlayed} | แบด {p.shuttlesInvolved} ลูก</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-black text-[18px] ${p.paid ? 'text-slate-300' : 'text-indigo-600'}`}>฿{calculateFee(p).toFixed(0)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-             </div>
+            {/* ปุ่มจัดการการชำระเงิน โอน/เงินสด */}
+            <div className="flex gap-2">
+              <button 
+                onClick={async () => await supabase.from('players').update({ paid: !p.paid, pay_type: 'transfer' }).eq('id', p.id)}
+                className={`flex-1 py-2 rounded-xl text-[12px] font-black border-2 transition-all ${p.paid && p.pay_type === 'transfer' ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white border-slate-100 text-slate-400'}`}
+              >
+                {p.paid && p.pay_type === 'transfer' ? '✅ โอนแล้ว' : '🏦 โอนเงิน'}
+              </button>
+              <button 
+                onClick={async () => await supabase.from('players').update({ paid: !p.paid, pay_type: 'cash' }).eq('id', p.id)}
+                className={`flex-1 py-2 rounded-xl text-[12px] font-black border-2 transition-all ${p.paid && p.pay_type === 'cash' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-100 text-slate-400'}`}
+              >
+                {p.paid && p.pay_type === 'cash' ? '✅ จ่ายสดแล้ว' : '💵 เงินสด'}
+              </button>
+            </div>
           </div>
-        )}
+        ))}
+      </div>
+    </div>
+  </div>
+)}
 
         {/* --- RANKING TAB --- */}
         {activeTab === 'ranking' && (
@@ -662,6 +656,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
