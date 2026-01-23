@@ -1,10 +1,11 @@
 "use client";
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { 
   PlusCircle, Trash2, Save, Trophy, LayoutDashboard, Settings as SettingsIcon, 
   Home, Search, CheckCircle2, Circle, QrCode, Users, TrendingUp, Wallet, 
-  Clock, Edit3, Trash, AlertCircle, Star, Award, UserCheck, ChevronRight
+  Clock, Edit3, Trash, AlertCircle, Star, Award, UserCheck, ChevronRight, Copy, Share2, 
+  UserPlus, History, BarChart3, RefreshCw, XCircle
 } from 'lucide-react';
 
 // --- CONFIG SUPABASE ---
@@ -18,144 +19,128 @@ export default function BadmintonUltimatePro() {
   const [players, setPlayers] = useState([]);
   const [playerName, setPlayerName] = useState('');
   const [courts, setCourts] = useState([]);
-  const [newCourtNumber, setNewCourtNumber] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   
+  // Modals
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' });
   const [confirmModal, setConfirmModal] = useState({ show: false, name: '' });
   const [shuttleModal, setShuttleModal] = useState({ show: false, courtId: null, winner: null });
 
-  // --- [2] ADMIN & RULES STATES ---
-  const [gameRuleName, setGameRuleName] = useState('ก๊วนเสน่ห์ แบดมินตันอบอุ่น 🏸');
-  const [maxMembers, setMaxMembers] = useState(30);
-  const [calcModel, setCalcModel] = useState('case1'); 
-  const [gameFormat, setGameFormat] = useState('2sets'); 
-  const [fixedEntryFee, setFixedEntryFee] = useState(90); 
-  const [shuttlePrice, setShuttlePrice] = useState(20);
-  const [fixedPricePerPerson, setFixedPricePerPerson] = useState(200); 
-  const [totalCourtCost, setTotalCourtCost] = useState(0); 
-  const [bankName, setBankName] = useState('ธนาคารกสิกรไทย');
-  const [accountNumber, setAccountNumber] = useState('000-0-0000-000');
-  const [accountName, setAccountName] = useState('ระบุชื่อบัญชี'); 
-  const [bankQRImage, setBankQRImage] = useState(null); 
-  const fileInputRef = useRef(null);
+  // Settings (ตาราง settings ID: 1)
+  const [settings, setSettings] = useState({
+    id: 1,
+    game_rule_name: 'ก๊วนเสน่ห์ แบดมินตันอบอุ่น 🏸',
+    fixed_entry_fee: 90,
+    shuttle_price: 20,
+    bank_name: 'ธนาคารกสิกรไทย',
+    account_number: '000-0-0000-000',
+    account_name: 'ระบุชื่อบัญชี',
+    calc_model: 'case1' // case1: fee + shuttle, case2: fixed
+  });
 
-  // --- [3] FETCH & REALTIME ---
-  const fetchOnlineData = async () => {
+  // --- [2] FETCH & REALTIME ---
+  const fetchData = async () => {
     try {
+      // 1. ดึงข้อมูลผู้เล่น
       const { data: p, error: pErr } = await supabase.from('players').select('*').order('points', { ascending: false });
       if (p) setPlayers(p);
       
+      // 2. ดึงข้อมูลสนาม
       const { data: c, error: cErr } = await supabase.from('courts').select('*').order('name', { ascending: true });
       if (c) setCourts(c);
       
+      // 3. ดึงค่า Settings
       const { data: s, error: sErr } = await supabase.from('settings').select('*').eq('id', 1).single();
-      if (s) {
-        setGameRuleName(s.game_rule_name || 'ก๊วนเสน่ห์ แบดมินตันอบอุ่น 🏸');
-        setMaxMembers(s.max_members || 30);
-        setCalcModel(s.calc_model || 'case1');
-        setGameFormat(s.game_format || '2sets');
-        setBankName(s.bank_name || '');
-        setAccountNumber(s.account_number || '');
-        setAccountName(s.account_name || '');
-        setBankQRImage(s.bank_qr_image || null);
-        setFixedEntryFee(s.fixed_entry_fee || 0);
-        setShuttlePrice(s.shuttle_price || 0);
-        setFixedPricePerPerson(s.fixed_price_per_person || 0);
-        setTotalCourtCost(s.total_court_cost || 0);
-      }
-    } catch (error) {
-      console.error("Fetch Error:", error);
+      if (s) setSettings(s);
+
+    } catch (err) {
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // โหลด Font Mali
-    const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&display=swap';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-
-    fetchOnlineData();
-
-    // เปิด Realtime Channel
-    const channel = supabase.channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-        fetchOnlineData();
-      })
+    fetchData();
+    // Subscribe Real-time ทั้ง 3 ตาราง
+    const channel = supabase.channel('pro-badminton-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'courts' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => fetchData())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // --- [4] LOGIC FUNCTIONS ---
-  const handleAddPlayer = () => {
-    if (!playerName.trim()) return;
-    if (players.length >= maxMembers) {
-      setAlertModal({ 
-        show: true, 
-        title: 'ก๊วนอบอุ่นจนเต็มแล้วจ้า! 🏠', 
-        message: `ตอนนี้เพื่อนๆ มาจอยกันครบ ${maxMembers} คนแล้วจ้ะ ไว้โอกาสหน้านะคะ`, 
-        type: 'info' 
-      });
-      return;
-    }
-    setConfirmModal({ show: true, name: playerName.trim() });
+  // --- [3] LOGIC FUNCTIONS ---
+  
+  // คำนวณค่าใช้จ่ายรายคน
+  const calculateFee = (p) => {
+    if (settings.calc_model === 'case2') return settings.fixed_entry_fee;
+    return (settings.fixed_entry_fee || 0) + ((p.shuttlesInvolved || 0) * (settings.shuttle_price || 0));
   };
 
-  const confirmAddPlayer = async () => {
-    const newP = {
-      name: confirmModal.name,
+  // เพิ่มผู้เล่นใหม่
+  const handleAddPlayer = async () => {
+    if (!playerName.trim()) return;
+    const { error } = await supabase.from('players').insert([{
+      name: playerName.trim(),
+      status: 'waiting',
+      points: 0,
       gamesPlayed: 0,
       wins: 0,
-      points: 0,
-      status: 'waiting',
       shuttlesInvolved: 0,
-      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${confirmModal.name + Date.now()}`,
-      paid: false
-    };
-    const { error } = await supabase.from('players').insert([newP]);
-    if (error) alert(error.message);
-    setPlayerName('');
-    setConfirmModal({ show: false, name: '' });
+      paid: false,
+      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${playerName.trim()}`
+    }]);
+    
+    if (error) {
+      setAlertModal({ show: true, title: 'เกิดข้อผิดพลาด', message: 'ไม่สามารถเพิ่มชื่อได้', type: 'error' });
+    } else {
+      setPlayerName('');
+      setConfirmModal({ show: false, name: '' });
+    }
   };
 
-  const handleDeletePlayer = async (id) => {
-    if (confirm('แน่ใจไหมจ๊ะว่าจะลบเพื่อนคนนี้ออก?')) {
+  // ลบผู้เล่น
+  const deletePlayer = async (id) => {
+    if (confirm("ยืนยันการลบสมาชิกออกจากก๊วนวันนี้?")) {
       await supabase.from('players').delete().eq('id', id);
     }
   };
 
-  const handleMatchMaking = async (courtId) => {
+  // สุ่มทีม (Queue System)
+  const autoMatch = async (courtId) => {
+    // เลือกคนที่มีสถานะ waiting และเล่นน้อยที่สุด (Sort by gamesPlayed)
     const waitingPlayers = players
       .filter(p => p.status === 'waiting')
-      .sort((a, b) => a.gamesPlayed - b.gamesPlayed);
+      .sort((a, b) => (a.gamesPlayed || 0) - (b.gamesPlayed || 0));
 
     if (waitingPlayers.length < 4) {
-      setAlertModal({ 
-        show: true, 
-        title: 'คนไม่พอจ้าาา 🏸', 
-        message: 'ต้องการนักกีฬาอย่างน้อย 4 คน เพื่อจัดทีมลงสนามนะจ๊ะ', 
-        type: 'info' 
-      });
+      setAlertModal({ show: true, title: 'คนไม่พอจ้า', message: 'ต้องมีสมาชิกสถานะ "รอเล่น" อย่างน้อย 4 ท่าน', type: 'info' });
       return;
     }
 
-    const selected = waitingPlayers.slice(0, 4).sort(() => Math.random() - 0.5);
-    const startTime = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    const selected = waitingPlayers.slice(0, 4);
+    // สุ่มแบ่งทีม A/B
+    const shuffled = [...selected].sort(() => 0.5 - Math.random());
+    const teamA = [shuffled[0], shuffled[1]];
+    const teamB = [shuffled[2], shuffled[3]];
 
+    // อัปเดตสถานะผู้เล่น
     await supabase.from('players').update({ status: 'playing' }).in('id', selected.map(p => p.id));
+    
+    // อัปเดตสนาม
     await supabase.from('courts').update({
       status: 'busy',
-      teamA: selected.slice(0, 2),
-      teamB: selected.slice(2, 4),
-      start_time: startTime
+      teamA: teamA,
+      teamB: teamB,
+      start_time: new Date().toLocaleTimeString('th-TH')
     }).eq('id', courtId);
   };
 
+  // จบเกมและบันทึกผล
   const finalizeMatch = async (courtId, winner, numShuttles) => {
     const court = courts.find(c => c.id === courtId);
     if (!court) return;
@@ -165,17 +150,20 @@ export default function BadmintonUltimatePro() {
     for (const p of allParticipants) {
       const isTeamA = court.teamA.some(m => m.id === p.id);
       const isWinner = (winner === 'A' && isTeamA) || (winner === 'B' && !isTeamA);
-      const pts = winner === 'Draw' ? 5 : (isWinner ? 10 : 2);
+      
+      // สูตรคะแนน: ชนะ +10, แพ้ +2 (สะสมเป็นเวล)
+      const pointAdd = isWinner ? 10 : 2;
 
       await supabase.from('players').update({
         status: 'waiting',
         gamesPlayed: (p.gamesPlayed || 0) + 1,
         wins: isWinner ? (p.wins || 0) + 1 : (p.wins || 0),
-        points: (p.points || 0) + pts,
+        points: (p.points || 0) + pointAdd,
         shuttlesInvolved: (p.shuttlesInvolved || 0) + numShuttles
       }).eq('id', p.id);
     }
 
+    // รีเซ็ตสนาม
     await supabase.from('courts').update({
       status: 'available',
       teamA: [],
@@ -186,482 +174,413 @@ export default function BadmintonUltimatePro() {
     setShuttleModal({ show: false, courtId: null, winner: null });
   };
 
-  const calculateFee = (p) => {
-    if (calcModel === 'case1') return fixedEntryFee + (p.shuttlesInvolved * shuttlePrice);
-    if (calcModel === 'case2') return fixedPricePerPerson;
-    if (calcModel === 'case3') {
-      const totalShuttles = players.reduce((sum, pl) => sum + pl.shuttlesInvolved, 0) / 4;
-      const totalCost = totalCourtCost + (totalShuttles * shuttlePrice);
-      return players.length > 0 ? Math.ceil(totalCost / players.length) : 0;
-    }
-    return 0;
+  // ก๊อปปี้สรุปยอดเข้า Line
+  const copyToLine = () => {
+    const unpaid = players.filter(p => !p.paid);
+    const summaryHeader = `🏸 สรุปยอดค่าแบด: ${settings.game_rule_name}\nประจำวันที่: ${new Date().toLocaleDateString('th-TH')}\n------------------\n`;
+    const summaryList = players.map(p => `${p.paid ? '✅' : '🔴'} ${p.name}: ${calculateFee(p)} บ.`).join('\n');
+    const summaryFooter = `\n------------------\n💰 โอนที่: ${settings.bank_name}\nเลขบัญชี: ${settings.account_number}\nชื่อ: ${settings.account_name}\nขอบคุณทุกท่านที่มาสนุกกันครับ! 🙏`;
+    
+    navigator.clipboard.writeText(summaryHeader + summaryList + summaryFooter);
+    setAlertModal({ show: true, title: 'คัดลอกสำเร็จ!', message: 'ข้อมูลสรุปยอดอยู่ใน Clipboard แล้ว', type: 'success' });
   };
 
-  const saveSettings = async () => {
-    const { error } = await supabase.from('settings').update({
-      game_rule_name: gameRuleName,
-      max_members: maxMembers,
-      calc_model: calcModel,
-      game_format: gameFormat,
-      bank_name: bankName,
-      account_number: accountNumber,
-      account_name: accountName,
-      bank_qr_image: bankQRImage,
-      fixed_entry_fee: fixedEntryFee,
-      shuttle_price: shuttlePrice,
-      fixed_price_per_person: fixedPricePerPerson,
-      total_court_cost: totalCourtCost
-    }).eq('id', 1);
-
-    if (error) alert(error.message);
-    else alert('บันทึกข้อมูลเรียบร้อยแล้วจ้า! 💖');
-  };
-
-  const filteredPlayers = useMemo(() => {
-    return players.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [players, searchQuery]);
-
-  // --- [5] RENDER UI ---
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-white text-pink-500 font-bold" style={{fontFamily: "'Mali', cursive"}}>
-      <div className="flex flex-col items-center gap-4">
-        <div className="animate-bounce text-4xl">🏸</div>
-        <p>กำลังเตรียมความพร้อมให้ก๊วนแบด...</p>
+  // --- [4] RENDER SUB-COMPONENTS ---
+  
+  const StatsCard = ({ title, value, icon: Icon, color }) => (
+    <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-50 flex items-center gap-4">
+      <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
+        <Icon size={20} />
+      </div>
+      <div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
+        <p className="text-xl font-black text-slate-700">{value}</p>
       </div>
     </div>
   );
 
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFCFB]">
+      <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="font-black text-pink-500 animate-pulse uppercase tracking-widest">กำลังเชื่อมต่อข้อมูลก๊วนเสน่ห์...</p>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-[#FDFCFB] pb-36 text-slate-700" style={{ fontFamily: "'Mali', cursive" }}>
+    <div className="min-h-screen bg-[#FDFCFB] pb-32 text-slate-700 select-none" style={{ fontFamily: "'Mali', cursive" }}>
       
-      {/* HEADER */}
-      <header className="bg-white/95 backdrop-blur-md p-6 sticky top-0 z-40 border-b border-pink-50 flex justify-between items-center shadow-sm">
+      {/* HEADER: แบบไฟล์ page_local_storage */}
+      <header className="bg-white/90 backdrop-blur-md p-6 sticky top-0 z-40 border-b border-pink-50 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-pink-500 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg shadow-pink-100">🏸</div>
+          <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-pink-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg shadow-pink-200">🏸</div>
           <div>
-            <h1 className="text-[18px] font-bold text-pink-500 leading-none">{gameRuleName}</h1>
-            <p className="text-[12px] text-slate-400 font-bold mt-1 uppercase tracking-widest">
-              สมาชิก {players.length} / {maxMembers} คน
-            </p>
+            <h1 className="text-[20px] font-black text-pink-500 leading-none">{settings.game_rule_name}</h1>
+            <p className="text-[12px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">🏸 สถานะ: ออนไลน์ (สมาชิก {players.length} คน)</p>
           </div>
         </div>
-        <div className="flex flex-col items-end">
-          <span className="text-[12px] font-black bg-indigo-50 text-indigo-400 px-3 py-1 rounded-full uppercase mb-1">
-            {calcModel === 'case1' ? 'Actual Shuttle' : 'Fixed Price'}
-          </span>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-            <span className="text-[9px] font-bold text-slate-300">CLOUD SYNCED</span>
-          </div>
+        <div className="flex gap-2">
+          <button onClick={() => fetchData()} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 active:rotate-180 transition-all">
+            <RefreshCw size={18} />
+          </button>
         </div>
       </header>
 
       <main className="max-w-md mx-auto p-4 space-y-6">
 
-        {/* --- HOME TAB --- */}
+        {/* --- TAB: HOME (หน้าสนาม) --- */}
         {activeTab === 'home' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            {/* ส่วนเพิ่มสมาชิก */}
-            <section className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-pink-50 space-y-4">
-              <div className="flex items-center gap-2 px-1">
-                <Star className="text-pink-400 fill-pink-400" size={16} />
-                <h3 className="font-bold text-slate-500 text-[14px]">ต้อนรับนักแบดมือโปรคนใหม่</h3>
-              </div>
-              <div className="flex flex-col gap-3">
-                <input 
-                  value={playerName} 
-                  onChange={(e) => setPlayerName(e.target.value)} 
-                  placeholder="พิมพ์ชื่อเล่นคนเก่งตรงนี้จ้ะ..." 
-                  className="w-full p-4 bg-pink-50/50 rounded-2xl outline-none font-bold text-[16px] text-pink-600 placeholder:text-pink-200 border-2 border-transparent focus:border-pink-100 transition-all"
-                />
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+            {/* กล่องเพิ่มชื่อ */}
+            <section className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-pink-50">
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <input 
+                    value={playerName} 
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && setConfirmModal({ show: true, name: playerName.trim() })}
+                    placeholder="ใส่ชื่อเล่นคนเก่ง..." 
+                    className="w-full p-4 bg-pink-50/30 rounded-2xl outline-none font-bold text-pink-600 placeholder:text-pink-200 border-2 border-transparent focus:border-pink-200 transition-all"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-pink-300"><UserPlus size={20} /></div>
+                </div>
                 <button 
-                  onClick={handleAddPlayer} 
-                  className="w-full bg-pink-500 text-white py-4 rounded-2xl font-black text-[18px] shadow-lg shadow-pink-100 active:scale-95 transition-all"
+                  onClick={() => setConfirmModal({ show: true, name: playerName.trim() })}
+                  disabled={!playerName.trim()}
+                  className="bg-pink-500 text-white px-6 rounded-2xl font-black shadow-lg shadow-pink-100 active:scale-95 disabled:opacity-30 transition-all"
                 >
-                  มาจอยกันเลย!
+                  <PlusCircle size={24} />
                 </button>
               </div>
             </section>
 
-            {/* ส่วนสถานะสนาม */}
-            <div className="space-y-4 pt-2">
-              <div className="flex justify-between items-center px-4">
-                <h3 className="font-bold text-slate-400 text-[12px] uppercase tracking-widest">ความเคลื่อนไหวในสนาม</h3>
-                <div className="flex gap-2 text-[12px] font-bold">
-                   <span className="text-emerald-500">ว่าง {courts.filter(c=>c.status==='available').length}</span>
-                   <span className="text-orange-500">แข่ง {courts.filter(c=>c.status==='busy').length}</span>
-                </div>
-              </div>
-
-              {courts.map(court => (
-                <div key={court.id} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
-                  <div className="flex justify-between items-center mb-5">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${court.status === 'busy' ? 'bg-orange-400 animate-pulse' : 'bg-emerald-400'}`}></div>
-                      <span className="text-indigo-500 font-black text-[16px] uppercase">{court.name}</span>
+            {/* รายการสนาม */}
+            {courts.map((court, idx) => (
+              <div key={court.id} className="bg-white p-6 rounded-[3rem] shadow-sm border border-indigo-50 relative overflow-hidden group">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-2xl flex items-center justify-center font-black">
+                      {idx + 1}
                     </div>
-                    {court.status === 'busy' && (
-                      <div className="flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded-full">
-                        <Clock size={12} className="text-indigo-400" />
-                        <span className="text-indigo-500 font-bold text-[11px]">{court.start_time}</span>
-                      </div>
+                    <span className="text-[18px] font-black text-slate-700 uppercase">คอร์ด # {court.name}</span>
+                  </div>
+                  <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black ${court.status === 'busy' ? 'bg-orange-100 text-orange-500 animate-pulse' : 'bg-emerald-100 text-emerald-500'}`}>
+                    {court.status === 'busy' ? (
+                      <><Clock size={12} /> กำลังแข่ง ({court.start_time})</>
+                    ) : (
+                      <><CheckCircle2 size={12} /> สนามว่าง</>
                     )}
                   </div>
-
-                  {court.status === 'busy' ? (
-                    <div className="space-y-4">
-                       <div className="flex justify-around items-center bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-slate-100 relative">
-                          <div className="text-center flex-1">
-                             <div className="space-y-1 mb-3">
-                                {court.teamA?.map(p => <p key={p.id} className="font-bold text-slate-700 text-[16px]">{p.name}</p>)}
-                             </div>
-                             <button onClick={() => setShuttleModal({ show: true, courtId: court.id, winner: 'A' })} className="bg-emerald-500 text-white px-5 py-1.5 rounded-full text-[12px] font-bold shadow-md shadow-emerald-50 active:scale-90">TEAM A ชนะ</button>
-                          </div>
-                          <div className="px-4 font-black text-slate-200 italic text-[18px]">VS</div>
-                          <div className="text-center flex-1">
-                             <div className="space-y-1 mb-3">
-                                {court.teamB?.map(p => <p key={p.id} className="font-bold text-slate-700 text-[16px]">{p.name}</p>)}
-                             </div>
-                             <button onClick={() => setShuttleModal({ show: true, courtId: court.id, winner: 'B' })} className="bg-emerald-500 text-white px-5 py-1.5 rounded-full text-[12px] font-bold shadow-md shadow-emerald-50 active:scale-90">TEAM B ชนะ</button>
-                          </div>
-                       </div>
-                       <button onClick={() => setShuttleModal({ show: true, courtId: court.id, winner: 'Draw' })} className="w-full py-3 bg-white border-2 border-slate-50 text-slate-300 rounded-2xl text-[12px] font-bold hover:bg-slate-50">เสมอ (1-1 เซต)</button>
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={() => handleMatchMaking(court.id)} 
-                      className="w-full py-12 border-2 border-dashed border-indigo-100 rounded-[2.5rem] flex flex-col items-center gap-2 group-hover:bg-indigo-50 transition-all active:scale-95"
-                    >
-                      <span className="text-4xl">🏸</span>
-                      <span className="text-indigo-300 font-black text-[16px]">จัดทีมลงสนาม</span>
-                    </button>
-                  )}
                 </div>
-              ))}
+
+                {court.status === 'busy' ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                       <div className="flex-1 bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 rounded-[1.8rem] text-center shadow-md">
+                          <p className="text-[10px] text-white/70 font-bold uppercase mb-1">TEAM A</p>
+                          <p className="text-white font-black truncate">{court.teamA.map(p => p.name).join(' & ')}</p>
+                       </div>
+                       <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 z-10 shadow-inner">VS</div>
+                       <div className="flex-1 bg-gradient-to-br from-pink-500 to-pink-600 p-4 rounded-[1.8rem] text-center shadow-md">
+                          <p className="text-[10px] text-white/70 font-bold uppercase mb-1">TEAM B</p>
+                          <p className="text-white font-black truncate">{court.teamB.map(p => p.name).join(' & ')}</p>
+                       </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={() => setShuttleModal({ show: true, courtId: court.id, winner: 'A' })} className="flex-1 bg-white border-2 border-indigo-500 text-indigo-500 py-3 rounded-2xl font-black text-sm hover:bg-indigo-500 hover:text-white transition-all shadow-sm">A ชนะ</button>
+                      <button onClick={() => setShuttleModal({ show: true, courtId: court.id, winner: 'B' })} className="flex-1 bg-white border-2 border-pink-500 text-pink-500 py-3 rounded-2xl font-black text-sm hover:bg-pink-500 hover:text-white transition-all shadow-sm">B ชนะ</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => autoMatch(court.id)}
+                    className="w-full py-12 border-2 border-dashed border-slate-100 rounded-[2.5rem] text-slate-300 font-black hover:bg-indigo-50/30 hover:border-indigo-200 hover:text-indigo-400 transition-all flex flex-col items-center gap-2"
+                  >
+                    <Users size={32} />
+                    <span>กดเพื่อเรียกคิวลงสนาม</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* --- TAB: LEADERBOARD (อันดับ) --- */}
+        {activeTab === 'leaderboard' && (
+           <div className="animate-in fade-in duration-500 space-y-4">
+              <div className="bg-indigo-600 p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+                 <Trophy className="absolute right-[-10px] bottom-[-10px] opacity-20 rotate-12" size={120} />
+                 <p className="text-[12px] opacity-70 font-black uppercase tracking-widest mb-1">MVP OF THE DAY</p>
+                 <h2 className="text-3xl font-black">{players[0]?.name || 'ยังไม่มีข้อมูล'}</h2>
+                 <p className="text-[14px] mt-2 bg-white/20 inline-block px-4 py-1 rounded-full backdrop-blur-sm">สะสมไปแล้ว {players[0]?.points || 0} แต้ม</p>
+              </div>
+
+              <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden">
+                {players.slice(0, 10).map((p, idx) => (
+                  <div key={idx} className="p-5 flex justify-between items-center border-b border-slate-50 last:border-0">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[12px] ${idx === 0 ? 'bg-yellow-400 text-white' : idx === 1 ? 'bg-slate-300 text-white' : idx === 2 ? 'bg-orange-400 text-white' : 'bg-slate-50 text-slate-400'}`}>
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <p className="font-black text-slate-700">{p.name}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase">ชนะ {p.wins} / ทั้งหมด {p.gamesPlayed} เกม</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-indigo-600 font-black">{p.points}</p>
+                      <p className="text-[9px] text-slate-300 font-bold uppercase">Points</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+           </div>
+        )}
+
+        {/* --- TAB: FINANCE (การเงิน) --- */}
+        {activeTab === 'dashboard' && (
+          <div className="animate-in fade-in duration-500 space-y-6">
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-200">
+               <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-[12px] opacity-70 font-black uppercase tracking-widest mb-1">ยอดรวมวันนี้</p>
+                    <h2 className="text-5xl font-black">฿{players.reduce((sum, p) => sum + calculateFee(p), 0).toLocaleString()}</h2>
+                  </div>
+                  <div className="bg-white/10 p-3 rounded-2xl">
+                    <Wallet size={24} />
+                  </div>
+               </div>
+               <div className="grid grid-cols-2 gap-3 mt-8">
+                 <button onClick={copyToLine} className="bg-white/20 hover:bg-white/30 p-4 rounded-[1.5rem] text-[12px] font-black flex items-center justify-center gap-2 transition-all">
+                    <Share2 size={16} /> ก๊อปปี้ส่ง Line
+                 </button>
+                 <button className="bg-white text-indigo-600 p-4 rounded-[1.5rem] text-[12px] font-black flex items-center justify-center gap-2 shadow-lg">
+                    <QrCode size={16} /> QR รับเงิน
+                 </button>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+               <StatsCard title="จ่ายแล้ว" value={players.filter(p => p.paid).length} icon={CheckCircle2} color="bg-emerald-500" />
+               <StatsCard title="ยังไม่จ่าย" value={players.filter(p => !p.paid).length} icon={AlertCircle} color="bg-rose-500" />
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden">
+               <div className="p-4 border-b border-slate-50">
+                  <div className="relative">
+                    <input 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="ค้นชื่อเพื่อน..." 
+                      className="w-full p-3 pl-10 bg-slate-50 rounded-xl text-sm font-bold border-none"
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                  </div>
+               </div>
+               {players.filter(p => p.name.includes(searchQuery)).map(p => (
+                 <div key={p.id} className="p-5 flex justify-between items-center border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={() => supabase.from('players').update({ paid: !p.paid }).eq('id', p.id)}
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${p.paid ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100 scale-105' : 'bg-slate-100 text-slate-300'}`}
+                      >
+                        {p.paid ? <CheckCircle2 size={20} /> : <Circle size={20} />}
+                      </button>
+                      <div>
+                        <p className={`font-black ${p.paid ? 'text-slate-300 line-through' : 'text-slate-700'}`}>{p.name}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase">ใช้ลูก {p.shuttlesInvolved} ลูก | {p.paid ? 'จ่ายเรียบร้อย' : 'รอชำระเงิน'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                       <span className={`font-black text-[18px] ${p.paid ? 'text-slate-300' : 'text-indigo-600'}`}>฿{calculateFee(p)}</span>
+                       <button onClick={() => deletePlayer(p.id)} className="p-2 text-rose-100 hover:text-rose-500 transition-colors">
+                         <Trash2 size={18} />
+                       </button>
+                    </div>
+                 </div>
+               ))}
             </div>
           </div>
         )}
 
-        {/* --- DASHBOARD TAB --- */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6 animate-in slide-in-from-right duration-500">
-             {/* บัตรสรุปเงิน */}
-             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
-                <div className="relative z-10">
-                  <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-[0.2em]">{bankName}</p>
-                  <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
-                  <p className="text-[14px] font-bold opacity-80">{accountName}</p>
-                  
-                  <div className="mt-8 flex justify-between items-end">
-                     <div>
-                        <p className="text-[12px] font-bold opacity-60 uppercase">ยอดรวมทั้งหมด</p>
-                        <p className="text-[32px] font-black leading-none">฿{players.reduce((sum, p) => sum + calculateFee(p), 0).toLocaleString()}</p>
-                     </div>
-                     <div className="flex gap-2">
-                        <div className="bg-white/10 px-3 py-1 rounded-xl border border-white/20 text-center">
-                           <p className="text-[8px] font-bold opacity-60 uppercase">จ่ายแล้ว</p>
-                           <p className="text-[14px] font-black">{players.filter(p=>p.paid).length}</p>
-                        </div>
-                        <div className="bg-white/10 px-3 py-1 rounded-xl border border-white/20 text-center">
-                           <p className="text-[8px] font-bold opacity-60 uppercase">ค้างชำระ</p>
-                           <p className="text-[14px] font-black">{players.filter(p=>!p.paid).length}</p>
-                        </div>
-                     </div>
-                  </div>
-                </div>
-                <div className="absolute -right-10 -bottom-10 opacity-10">
-                   <QrCode size={200} />
-                </div>
-             </div>
-
-             {/* QR Code Section */}
-             {bankQRImage && (
-               <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 text-center">
-                  <img src={bankQRImage} alt="QR" className="mx-auto w-48 h-48 rounded-3xl border-4 border-slate-50" />
-                  <p className="mt-3 text-[12px] font-bold text-slate-300">สแกนจ่ายตรงนี้ได้เลยจ้า</p>
-               </div>
-             )}
-
-             {/* รายชื่อนักกีฬา */}
-             <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden">
-                <div className="p-6 border-b border-slate-50 flex flex-col gap-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-700 text-[16px]">ตรวจสอบการชำระเงิน</h3>
-                    <button onClick={fetchOnlineData} className="text-slate-300 hover:text-indigo-400 transition-colors">
-                      <Search size={18} />
-                    </button>
-                  </div>
-                  <input 
-                    value={searchQuery}
-                    onChange={(e)=>setSearchQuery(e.target.value)}
-                    placeholder="ค้นหาชื่อเพื่อนเพื่อติ๊กจ่ายเงิน..."
-                    className="w-full p-3 bg-slate-50 rounded-xl outline-none text-[14px] font-bold text-slate-600"
-                  />
+        {/* --- TAB: SETTINGS (ตั้งค่า) --- */}
+        {activeTab === 'settings' && (
+          <div className="animate-in fade-in duration-500 space-y-6 pb-10">
+             <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 space-y-6">
+                <div className="flex items-center gap-3 mb-4">
+                   <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-2xl flex items-center justify-center"><SettingsIcon size={20} /></div>
+                   <h3 className="font-black text-slate-700 text-lg uppercase">ตั้งค่าระบบก๊วน</h3>
                 </div>
 
-                <div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">
-                  {filteredPlayers.map(p => (
-                    <div key={p.id} className={`p-5 flex justify-between items-center transition-all ${p.paid ? 'bg-emerald-50/50 opacity-60' : 'bg-white'}`}>
-                      <div className="flex items-center gap-4">
-                        <button 
-                          onClick={async () => await supabase.from('players').update({ paid: !p.paid }).eq('id', p.id)}
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${p.paid ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300'}`}
-                        >
-                          {p.paid ? <CheckCircle2 size={20} /> : <Circle size={20} />}
-                        </button>
-                        <div>
-                          <p className={`font-bold text-[16px] ${p.paid ? 'text-slate-300 line-through' : 'text-slate-700'}`}>{p.name}</p>
-                          <p className="text-[12px] font-bold text-slate-400 uppercase">เล่น {p.gamesPlayed} | แบด {p.shuttlesInvolved} ลูก</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-black text-[18px] ${p.paid ? 'text-slate-300' : 'text-indigo-600'}`}>฿{calculateFee(p).toFixed(0)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-             </div>
-          </div>
-        )}
-
-        {/* --- RANKING TAB --- */}
-        {activeTab === 'ranking' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-             <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-8 rounded-[3rem] text-white shadow-xl flex items-center gap-6">
-                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/30">
-                   <Award size={36} />
-                </div>
-                <div>
-                  <h2 className="text-[24px] font-black italic">HALL OF FAME</h2>
-                  <p className="text-yellow-100 text-[11px] font-bold uppercase tracking-widest">ทำเนียบนักแบดมือทอง</p>
-                </div>
-             </div>
-
-             <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden p-2">
-                {players.map((p, i) => (
-                  <div key={p.id} className="p-6 flex items-center justify-between border-b border-slate-50 last:border-0">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <span className={`absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-black border-2 border-white shadow-md ${i===0 ? 'bg-yellow-400 text-white' : i===1 ? 'bg-slate-300 text-white' : i===2 ? 'bg-orange-300 text-white' : 'bg-white text-slate-300'}`}>
-                          {i+1}
-                        </span>
-                        <img src={p.avatar} alt={p.name} className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-700 text-[17px]">{p.name}</p>
-                        <p className="text-[12px] font-bold text-emerald-500 uppercase">WIN {p.wins} / PLAY {p.gamesPlayed}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[24px] font-black text-indigo-600 leading-none">{p.points}</p>
-                      <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-1">POINTS</p>
-                    </div>
-                  </div>
-                ))}
-             </div>
-          </div>
-        )}
-
-        {/* --- ADMIN TAB --- */}
-        {activeTab === 'admin' && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-6 duration-700 pb-10">
-             <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 space-y-10">
-                {/* 1. ข้อมูลก๊วน */}
                 <div className="space-y-4">
-                  <h4 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                    <Home size={14} /> 1. ข้อมูลบ้านแบด
-                  </h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[12px] font-bold text-slate-400 ml-4">ชื่อกลุ่ม</label>
-                      <input value={gameRuleName} onChange={(e)=>setGameRuleName(e.target.value)} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-100" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[12px] font-bold text-slate-400 ml-4">จำนวนสมาชิกสูงสุด (คน)</label>
-                      <input type="number" value={maxMembers} onChange={(e)=>setMaxMembers(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                    </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest">ชื่อก๊วนสุดเท่</label>
+                    <input 
+                      value={settings.game_rule_name} 
+                      onChange={(e) => setSettings({...settings, game_rule_name: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl font-bold mt-1 border-none focus:ring-2 ring-pink-500/20 outline-none" 
+                    />
                   </div>
-                </div>
-
-                {/* 2. การชำระเงิน */}
-                <div className="space-y-4">
-                  <h4 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                    <Wallet size={14} /> 2. ข้อมูลธนาคาร & QR
-                  </h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    <input value={bankName} onChange={(e)=>setBankName(e.target.value)} placeholder="ชื่อธนาคาร" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                    <input value={accountNumber} onChange={(e)=>setAccountNumber(e.target.value)} placeholder="เลขบัญชี" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                    <input value={accountName} onChange={(e)=>setAccountName(e.target.value)} placeholder="ชื่อเจ้าของบัญชี" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                    <div 
-                      onClick={() => fileInputRef.current.click()}
-                      className="p-8 border-2 border-dashed border-slate-100 rounded-3xl flex flex-col items-center gap-2 text-slate-300 hover:bg-slate-50 cursor-pointer"
-                    >
-                       <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={(e) => {
-                         const file = e.target.files[0];
-                         if(file) {
-                           const reader = new FileReader();
-                           reader.onloadend = () => setBankQRImage(reader.result);
-                           reader.readAsDataURL(file);
-                         }
-                       }} />
-                       {bankQRImage ? <img src={bankQRImage} className="w-32 h-32 rounded-xl" /> : <><PlusCircle size={32} /> <span className="text-[12px] font-bold uppercase">อัปโหลด QR Code</span></>}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest">ค่าเข้า (฿)</label>
+                      <input 
+                        type="number"
+                        value={settings.fixed_entry_fee} 
+                        onChange={(e) => setSettings({...settings, fixed_entry_fee: Number(e.target.value)})}
+                        className="w-full p-4 bg-slate-50 rounded-2xl font-bold mt-1" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest">ค่าลูกแบด (฿)</label>
+                      <input 
+                        type="number"
+                        value={settings.shuttle_price} 
+                        onChange={(e) => setSettings({...settings, shuttle_price: Number(e.target.value)})}
+                        className="w-full p-4 bg-slate-50 rounded-2xl font-bold mt-1" 
+                      />
                     </div>
                   </div>
-                </div>
-
-                {/* 3-5. โมเดลราคา */}
-                <div className="space-y-4">
-                  <h4 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                    <TrendingUp size={14} /> 3-5. รูปแบบการหารค่าใช้จ่าย
-                  </h4>
-                  <div className="space-y-4 px-2">
-                    <div className="flex justify-between items-center p-4 bg-indigo-50/50 rounded-2xl">
-                      <span className="text-[13px] font-bold text-indigo-600 uppercase">ระบบคิดเงิน</span>
-                      <select value={calcModel} onChange={(e)=>setCalcModel(e.target.value)} className="bg-transparent font-black text-indigo-600 outline-none text-right">
-                         <option value="case1">ค่าสนาม + ลูกตามจริง</option>
-                         <option value="case2">ราคาเหมาจ่าย</option>
-                         <option value="case3">หารเฉลี่ยทุกคน</option>
-                      </select>
-                    </div>
-                    {calcModel === 'case1' ? (
-                      <div className="grid grid-cols-2 gap-3">
-                         <input type="number" value={fixedEntryFee} onChange={(e)=>setFixedEntryFee(Number(e.target.value))} placeholder="ค่าเข้า (฿)" className="p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                         <input type="number" value={shuttlePrice} onChange={(e)=>setShuttlePrice(Number(e.target.value))} placeholder="ลูกละ (฿)" className="p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                      </div>
-                    ) : calcModel === 'case2' ? (
-                      <input type="number" value={fixedPricePerPerson} onChange={(e)=>setFixedPricePerPerson(Number(e.target.value))} placeholder="เหมาจ่ายต่อคน (฿)" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                         <input type="number" value={totalCourtCost} onChange={(e)=>setTotalCourtCost(Number(e.target.value))} placeholder="ค่าสนามรวม" className="p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                         <input type="number" value={shuttlePrice} onChange={(e)=>setShuttlePrice(Number(e.target.value))} placeholder="ลูกละ (฿)" className="p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                      </div>
-                    )}
+                  <div className="pt-6 border-t border-slate-50">
+                    <p className="text-[10px] font-black text-indigo-400 ml-2 uppercase tracking-widest mb-3">ข้อมูลสำหรับรับโอน</p>
+                    <input 
+                      placeholder="ชื่อธนาคาร"
+                      value={settings.bank_name} 
+                      onChange={(e) => setSettings({...settings, bank_name: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl font-bold mt-2 border-none" 
+                    />
+                    <input 
+                      placeholder="เลขที่บัญชี"
+                      value={settings.account_number} 
+                      onChange={(e) => setSettings({...settings, account_number: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl font-bold mt-2 border-none" 
+                    />
+                    <input 
+                      placeholder="ชื่อบัญชี (Account Name)"
+                      value={settings.account_name} 
+                      onChange={(e) => setSettings({...settings, account_name: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl font-bold mt-2 border-none" 
+                    />
                   </div>
                 </div>
-
-                {/* 6. จัดการสนาม */}
-                <div className="space-y-4">
-                  <h4 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                    <LayoutDashboard size={14} /> 6. จัดการเลขสนามแบด
-                  </h4>
-                  <div className="flex gap-3 px-2">
-                    <input value={newCourtNumber} onChange={(e)=>setNewCourtNumber(e.target.value)} placeholder="เช่น สนาม 7" className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                    <button 
-                      onClick={async () => {
-                        if(!newCourtNumber) return;
-                        await supabase.from('courts').insert([{ name: newCourtNumber.trim(), status: 'available', teamA: [], teamB: [] }]);
-                        setNewCourtNumber('');
-                      }}
-                      className="bg-indigo-500 text-white px-6 rounded-2xl font-black text-xl"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 px-2">
-                    {courts.map(c => (
-                      <div key={c.id} className="bg-slate-50 pl-4 pr-1 py-1 rounded-xl flex items-center gap-3 border border-slate-100">
-                        <span className="text-[12px] font-bold text-slate-500 uppercase">{c.name}</span>
-                        <button onClick={async() => {if(confirm(`ลบ ${c.name}?`)) await supabase.from('courts').delete().eq('id',c.id)}} className="w-8 h-8 flex items-center justify-center text-rose-300 hover:text-rose-500"><Trash size={14} /></button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* บันทึก */}
-                <button 
-                  onClick={saveSettings} 
-                  className="w-full py-5 bg-pink-500 text-white rounded-[2.5rem] font-black text-[18px] shadow-lg shadow-pink-100 active:scale-95 transition-all flex items-center justify-center gap-3"
-                >
-                  <Save size={24} /> บันทึกการตั้งค่าทั้งหมด
-                </button>
-
+                
                 <button 
                   onClick={async () => {
-                    if(confirm('ต้องการเริ่มวันใหม่? (รายชื่อนักกีฬาและคะแนนจะหายไปทั้งหมด)')){
-                      await supabase.from('players').delete().neq('id', 0);
-                      await supabase.from('courts').update({status:'available', teamA:[], teamB:[], start_time:null}).neq('id', 0);
-                      alert('ล้างข้อมูลเรียบร้อยแล้วจ้า! 🏸');
-                    }
+                    const { error } = await supabase.from('settings').update(settings).eq('id', 1);
+                    if (!error) setAlertModal({ show: true, title: 'บันทึกเรียบร้อย!', message: 'ข้อมูลก๊วนอัปเดตเข้าระบบ Cloud แล้วจ้า', type: 'success' });
                   }}
-                  className="w-full text-rose-300 text-[11px] font-bold underline"
+                  className="w-full py-5 bg-pink-500 text-white rounded-[2rem] font-black shadow-xl shadow-pink-100 active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                  ล้างข้อมูลเพื่อเริ่มวันใหม่
+                  <Save size={20} /> บันทึกการตั้งค่า
                 </button>
+
+                <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 mt-4">
+                  <p className="text-[11px] text-orange-600 font-bold leading-relaxed">
+                    * ข้อมูลเหล่านี้จะถูกบันทึกลงในฐานข้อมูลหลัก และจะมีผลกับแอปฯ ของสมาชิกทุกคนทันที
+                  </p>
+                </div>
              </div>
           </div>
         )}
       </main>
 
-      {/* FOOTER NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-50 px-6 py-5 flex justify-between items-center z-50 rounded-t-[3rem] shadow-2xl shadow-slate-200">
+      {/* --- FOOTER NAV --- */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-pink-50 px-8 py-4 flex justify-between items-center z-50 rounded-t-[3rem] shadow-[0_-10px_50px_rgba(0,0,0,0.06)]">
         {[
-          { id: 'home', label: 'หน้าสนาม', icon: '🏠' },
-          { id: 'dashboard', label: 'การเงิน', icon: '💰' },
-          { id: 'ranking', label: 'อันดับ', icon: '🏆' },
-          { id: 'admin', label: 'ตั้งค่า', icon: '⚙️' }
+          { id: 'home', label: 'สนาม', icon: <Home size={22} /> },
+          { id: 'leaderboard', label: 'อันดับ', icon: <Trophy size={22} /> },
+          { id: 'dashboard', label: 'การเงิน', icon: <Wallet size={22} /> },
+          { id: 'settings', label: 'ตั้งค่า', icon: <SettingsIcon size={22} /> }
         ].map(tab => (
           <button 
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center gap-1 transition-all ${activeTab === tab.id ? 'scale-110 text-pink-500 font-black' : 'text-slate-300 font-bold opacity-70'}`}
+            key={tab.id} 
+            onClick={() => setActiveTab(tab.id)} 
+            className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === tab.id ? 'scale-110 text-pink-500' : 'text-slate-300 opacity-60 hover:opacity-100'}`}
           >
-            <span className="text-[26px]">{tab.icon}</span>
-            <span className="text-[11px] uppercase tracking-tighter">{tab.label}</span>
+            <div className={`p-2 rounded-2xl ${activeTab === tab.id ? 'bg-pink-50' : 'bg-transparent'}`}>
+              {tab.icon}
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tighter">{tab.label}</span>
           </button>
         ))}
       </nav>
 
       {/* --- MODALS --- */}
-      {confirmModal.show && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 text-center shadow-2xl border-t-8 border-pink-500">
-            <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-6 text-pink-500 text-3xl">🏸</div>
-            <h3 className="text-[22px] font-black mb-2 text-slate-700 leading-tight">ยินดีต้อนรับนะจ๊ะ<br/>คุณ {confirmModal.name}!</h3>
-            <p className="text-slate-400 font-bold mb-8 text-[15px]">พร้อมที่จะปล่อยพลังในสนามหรือยังเอ่ย?</p>
-            <div className="flex flex-col gap-3">
-              <button onClick={confirmAddPlayer} className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-[18px] shadow-lg shadow-emerald-50">ยืนยันเลยจ้า!</button>
-              <button onClick={() => setConfirmModal({show:false, name:''})} className="w-full py-4 text-slate-300 font-bold text-[14px]">ขอเปลี่ยนชื่ออีกที</button>
-            </div>
-          </div>
-        </div>
-      )}
 
+      {/* Modal: เลือกจำนวนลูกแบดเมื่อจบเกม */}
       {shuttleModal.show && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-indigo-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 text-center shadow-2xl">
-            <h3 className="text-[20px] font-black mb-2 text-indigo-600 uppercase tracking-tighter italic">เก่งมากจ้า! ใช้ลูกแบดกี่ลูกเอ่ย? 🏸</h3>
-            <p className="text-slate-400 font-bold mb-6 text-[14px]">จิบน้ำให้หายเหนื่อยก่อนได้นะจ๊ะ</p>
-            <div className="grid grid-cols-3 gap-3 my-8">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-indigo-950/40 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[3.5rem] w-full max-w-sm p-10 text-center shadow-2xl border-b-[10px] border-indigo-500">
+            <h3 className="text-[20px] font-black mb-2 text-indigo-600 uppercase">จบแมตช์แล้วจ้า! 🏸</h3>
+            <p className="text-slate-400 font-bold mb-6 text-[14px]">แมตช์นี้ใช้ลูกแบดไปทั้งหมดกี่ลูกเอ่ย?</p>
+            <div className="grid grid-cols-3 gap-3 my-6">
               {[1, 2, 3, 4, 5, 6].map(n => (
                 <button 
                   key={n} 
                   onClick={() => finalizeMatch(shuttleModal.courtId, shuttleModal.winner, n)} 
-                  className="py-6 bg-indigo-50 hover:bg-indigo-500 hover:text-white rounded-[1.8rem] font-black text-[24px] transition-all active:scale-90"
+                  className="py-6 bg-slate-50 hover:bg-indigo-500 hover:text-white rounded-[1.8rem] font-black text-2xl transition-all active:scale-90 border-2 border-transparent hover:shadow-lg"
                 >
                   {n}
                 </button>
               ))}
             </div>
-            <button onClick={() => setShuttleModal({show:false, courtId:null, winner:null})} className="text-slate-300 font-bold text-[12px] uppercase">ยกเลิก</button>
+            <button onClick={() => setShuttleModal({show:false, courtId:null, winner:null})} className="text-slate-300 font-bold text-xs uppercase tracking-widest hover:text-slate-500">ยกเลิกการบันทึก</button>
           </div>
         </div>
       )}
 
-      {alertModal.show && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 text-center shadow-2xl border-b-[12px] border-indigo-500">
-            <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-500">
-               <AlertCircle size={32} />
+      {/* Modal: ยืนยันการเพิ่มสมาชิก */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-pink-900/10 backdrop-blur-sm animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 text-center shadow-2xl border-t-[10px] border-pink-500">
+            <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <UserPlus className="text-pink-500" size={32} />
             </div>
-            <h3 className="text-[22px] font-black mb-2 text-slate-800">{alertModal.title}</h3>
-            <p className="text-slate-400 font-bold mb-8 text-[14px] leading-relaxed">{alertModal.message}</p>
-            <button onClick={() => setAlertModal({ ...alertModal, show: false })} className="w-full py-4 bg-indigo-500 text-white rounded-2xl font-black text-[18px]">รับทราบจ้า ❤️</button>
+            <h3 className="text-xl font-black mb-2 text-slate-700">ยินดีต้อนรับคุณ {confirmModal.name}</h3>
+            <p className="text-slate-400 font-bold mb-8 text-sm leading-relaxed">ต้องการเพิ่มรายชื่อเข้าสู่ก๊วนในวันนี้ใช่หรือไม่?</p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={handleAddPlayer} 
+                className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all"
+              >
+                ใช่แล้ว เพิ่มเลย!
+              </button>
+              <button 
+                onClick={() => setConfirmModal({show:false, name:''})} 
+                className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black hover:bg-slate-200 transition-all"
+              >
+                ขอเช็กอีกที
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: แจ้งเตือน (Alert) */}
+      {alertModal.show && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
+          <div className="bg-white rounded-[3rem] w-full max-w-sm p-8 text-center shadow-2xl overflow-hidden relative">
+            <div className={`h-2 w-full absolute top-0 left-0 ${alertModal.type === 'success' ? 'bg-emerald-500' : 'bg-indigo-500'}`}></div>
+            <h3 className="text-[22px] font-black mb-2 text-slate-800 mt-4">{alertModal.title}</h3>
+            <p className="text-slate-400 font-bold mb-8 text-[15px] leading-relaxed px-4">{alertModal.message}</p>
+            <button 
+              onClick={() => setAlertModal({ ...alertModal, show: false })} 
+              className="w-full py-4 bg-indigo-500 text-white rounded-2xl font-black shadow-lg active:scale-95 transition-all"
+            >
+              รับทราบจ้า ❤️
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}>
           </div>
         </div>
       )}
     </div>
   );
 }
+
 
 
 
