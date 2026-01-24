@@ -36,6 +36,10 @@ export default function BadmintonUltimatePro() {
     return () => clearInterval(timer);
   }, []);
 
+  // กำลังจบเกมที่สนามไหน
+  const [selectedCourtForEnd, setSelectedCourtForEnd] = useState(null);
+  const [showEndMatchModal, setShowEndMatchModal] = useState(false);
+
   // --- [2] ADMIN & RULES STATES ---
   const [gameRuleName, setGameRuleName] = useState('ก๊วนเสน่ห์ แบดมินตันอบอุ่น 🏸');
   const [maxMembers, setMaxMembers] = useState(30);
@@ -321,6 +325,65 @@ export default function BadmintonUltimatePro() {
     return players.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [players, searchQuery]);
 
+  // 💻 โค้ดฟังก์ชัน confirmEndMatch
+  const confirmEndMatch = async (shuttles) => {
+  if (!selectedCourtForEnd) return;
+
+  try {
+    // 1. ดึงรายชื่อผู้เล่นทั้งหมดจากสนามที่กำลังจะจบเกม
+    const court = selectedCourtForEnd;
+    const allPlayersInMatch = [...(court.teamA || []), ...(court.teamB || [])];
+
+    // 2. อัปเดตข้อมูลผู้เล่นทุกคนใน Supabase (บวกจำนวนเกม และ จำนวนลูกแบด)
+    for (const playerName of allPlayersInMatch) {
+      // ค้นหาข้อมูลเดิมของผู้เล่นคนนี้ก่อน
+      const { data: pData } = await supabase
+        .from('players')
+        .select('gamesPlayed, shuttlesInvolved')
+        .eq('name', playerName)
+        .single();
+
+      if (pData) {
+        await supabase
+          .from('players')
+          .update({
+            gamesPlayed: (pData.gamesPlayed || 0) + 1,
+            shuttlesInvolved: (pData.shuttlesInvolved || 0) + shuttles,
+            status: 'waiting' // เมื่อจบเกมให้กลับไปสถานะรอเล่น
+          })
+          .eq('name', playerName);
+      }
+    }
+
+    // 3. รีเซ็ตสนามใน Supabase ให้ว่าง
+    await supabase
+      .from('courts')
+      .update({
+        status: 'available',
+        teamA: [],
+        teamB: [],
+        start_time: null
+      })
+      .eq('id', court.id);
+
+    // 4. ปิด Modal และเคลียร์ค่าชั่วคราว
+    setShowEndMatchModal(false);
+    setSelectedCourtForEnd(null);
+
+    // 5. (Option) แจ้งเตือนความสำเร็จ
+    setAlertModal?.({ 
+      show: true, 
+      title: 'จบเกมเรียบร้อย! 🏸', 
+      message: `บันทึกสถิติและใช้แบดไป ${shuttles} ลูกจ้า`, 
+      type: 'success' 
+    });
+
+  } catch (error) {
+    console.error('Error ending match:', error);
+    alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+  }
+};
+
   // --- [5] RENDER UI ---
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white text-pink-500 font-bold" style={{fontFamily: "'Mali', cursive"}}>
@@ -387,6 +450,16 @@ export default function BadmintonUltimatePro() {
                 </button>
               </div>
             </section>
+
+            <button 
+              onClick={() => {
+                setSelectedCourtForEnd(court); // เก็บข้อมูลสนามที่จะจบ
+                setShowEndMatchModal(true);    // เปิด Modal ถามจำนวนลูก
+              }}
+              className="..."
+            >
+              จบเกม
+            </button>
 
             {/* ส่วนสถานะสนาม */}
             <div className="space-y-4 pt-2">
@@ -866,6 +939,40 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
+{/* 3. กู้คืน Modal "จิบน้ำให้หายเหนื่อย" (End Match) */}
+{showEndMatchM al && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
+    <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl animate-in zoom-in duration-300 text-center">
+      <span className="text-5xl mb-4 block">🏸</span>
+      <h3 className="text-[20px] font-black text-slate-700 mb-2">เก่งมากจ้า! จบเกมแล้ว</h3>
+      <p className="text-slate-400 text-[14px] font-bold mb-6 leading-relaxed">
+        จิบน้ำให้หายเหนื่อยก่อนได้นะจ๊ะ <br/> แล้วบอกนิดนึง... รอบนี้ใช้แบดไปกี่ลูกเอ่ย?
+      </p>
+      
+      {/* ซ่อนช่องใส่ลูกแบดถ้าเป็นราคาเหมาจ่าย (Case 2) */}
+      {calcModel !== 'case2' && (
+        <div className="flex justify-center gap-4 mb-8">
+          {[1, 2, 3].map(num => (
+            <button key={num} onClick={() => confirmEndMatch(num)} className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 text-xl font-black hover:bg-indigo-500 hover:text-white transition-all">
+              {num}
+            </button>
+          ))}
+          <input type="number" placeholder="อื่นๆ" className="w-16 h-16 rounded-2xl bg-slate-50 text-center font-black outline-none border-2 border-transparent focus:border-indigo-200"
+            onKeyDown={(e) => { if(e.key === 'Enter') confirmEndMatch(Number(e.currentTarget.value)); }}
+          />
+        </div>
+      )}
+      
+      {calcModel === 'case2' && (
+        <button onClick={() => confirmEndMatch(0)} className="w-full py-4 bg-indigo-500 text-white rounded-2xl font-black shadow-lg shadow-indigo-100">
+          บันทึกจบเกม
+        </button>
+      )}
+    </div>
+  </div>
+)}
+
 
 
 
