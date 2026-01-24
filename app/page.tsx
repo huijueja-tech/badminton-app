@@ -730,25 +730,10 @@ export default function BadmintonUltimatePro() {
                         }]);
                         setNewCourtNumber('');
                       }}
-                      className="bg-indigo-500 text-white w-14 h-14 shrink-0 rounded-2xl font-black text-2xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-indigo-100"
-                    >
+                      className="bg-indigo-500 text-white w-14 h-14 shrink-0 rounded-2xl font-black text-2xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-indigo-100">
                       +
-                    </button>
-  <              /div>
-                  
-                  // ของเดิม 
-                  <div className="flex gap-3 px-2">
-                    <input value={newCourtNumber} onChange={(e)=>setNewCourtNumber(e.target.value)} placeholder="เช่น สนาม 7" className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                    <button 
-                      onClick={async () => {
-                        if(!newCourtNumber) return;
-                        await supabase.from('courts').insert([{ name: newCourtNumber.trim(), status: 'available', teamA: [], teamB: [] }]);
-                        setNewCourtNumber('');
-                      }}
-                      className="bg-indigo-500 text-white px-6 rounded-2xl font-black text-xl">
-                      +
-                    </button>
-                  </div>
+                    </button> 
+                  </div>                  
                   
                   <div className="flex flex-wrap gap-2 px-2">
                     {courts.map(c => (
@@ -855,6 +840,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
