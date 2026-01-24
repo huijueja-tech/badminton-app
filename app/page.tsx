@@ -708,32 +708,37 @@ export default function BadmintonUltimatePro() {
                 <h4 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
                 <LayoutDashboard size={14} /> 6. จัดการเลขสนามแบด
                 </h4>
-                    <div className="flex gap-2 px-4 mb-4">
-                    {/* ช่องกรอกเลขสนาม: ใช้ flex-1 เพื่อให้ขยายเต็มพื้นที่ที่เหลือ */}
+                  <div className="grid grid-cols-2 gap-3 px-2">
                     <input 
                       value={newCourtNumber} 
-                      onChange={(e) => setNewCourtNumber(e.target.value)} 
-                      placeholder="เช่น 7" 
-                      className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-100 text-[16px]" 
-                      /* text-[16px] ช่วยป้องกันไม่ให้ iOS ซูมหน้าจอเวลาแตะ input */
+                      onChange={(e) => setNewCourtNumber(e.target.value)}
+                      placeholder="เลขสนาม (เช่น 7)" 
+                      className="w-full p-4 bg-slate-50 rounded-2xl text-[15px] font-bold outline-none border-2 border-transparent focus:border-indigo-100"
                     />
-                    
-                    {/* ปุ่มเพิ่ม: ใช้ shrink-0 เพื่อไม่ให้ปุ่มถูกบีบจนเสียรูป */}
                     <button 
                       onClick={async () => {
-                        if(!newCourtNumber) return;
-                        await supabase.from('courts').insert([{ 
-                          name: newCourtNumber.trim(), 
-                          status: 'available', 
-                          teamA: [], 
-                          teamB: [] 
-                        }]);
-                        setNewCourtNumber('');
-                      }}
-                      className="bg-indigo-500 text-white w-14 h-14 shrink-0 rounded-2xl font-black text-2xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-indigo-100">
-                      +
-                    </button> 
-                  </div>                  
+                        if (!newCourtNumber.trim()) return; // กันการกดเล่นโดยไม่พิมพ์เลข
+                  
+                        // บันทึกลง Supabase
+                        const { error } = await supabase
+                          .from('courts')
+                          .insert([{ 
+                            name: newCourtNumber.trim(), 
+                            status: 'available', 
+                            teamA: [], 
+                            teamB: [] 
+                          }]);
+                  
+                        if (error) {
+                          alert("เกิดข้อผิดพลาด: " + error.message);
+                        } else {
+                          setNewCourtNumber(''); // ล้างช่องกรอกเมื่อสำเร็จ
+                        }
+                      }} 
+                      className="bg-indigo-500 text-white rounded-2xl font-bold active:scale-95 transition-all py-4">
+                      + เพิ่มสนาม
+                    </button>
+                  </div>           
                   
                   <div className="flex flex-wrap gap-2 px-2">
                     {courts.map(c => (
@@ -840,6 +845,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
