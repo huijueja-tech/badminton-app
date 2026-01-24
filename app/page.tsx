@@ -937,10 +937,7 @@ export default function BadmintonUltimatePro() {
         </div>
       )}
     </div>
-  );
-}
-    </div>
-  </div>
+    
 {/* 3. กู้คืน Modal "จิบน้ำให้หายเหนื่อย" (End Match) */}
 {showEndMatchM al && (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
@@ -970,7 +967,13 @@ export default function BadmintonUltimatePro() {
           บันทึกจบเกม
         </button>
       )}
+    
+  );
+}
+    </div>
+  </div>
 )}
+
 
 
 
