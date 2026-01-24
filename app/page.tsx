@@ -453,7 +453,7 @@ export default function BadmintonUltimatePro() {
 
             <button 
               onClick={() => {
-                setSelectedCourtForEnd(c); // เก็บข้อมูลสนามที่จะจบ
+                setSelectedCourtForEnd(court); // เก็บข้อมูลสนามที่จะจบ
                 setShowEndMatchModal(true);    // เปิด Modal ถามจำนวนลูก
               }}
               className="..."
@@ -980,6 +980,7 @@ export default function BadmintonUltimatePro() {
     </div> // ปิด DIV หลักของ Return
   ); // ปิด Return
 } // ปิด Function
+
 
 
 
