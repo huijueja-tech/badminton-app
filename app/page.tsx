@@ -938,7 +938,6 @@ export default function BadmintonUltimatePro() {
       )}
     </div>
     
-{/* 3. กู้คืน Modal "จิบน้ำให้หายเหนื่อย" (End Match) */}
 {showEndMatchM al && (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
     <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl animate-in zoom-in duration-300 text-center">
@@ -973,6 +972,7 @@ export default function BadmintonUltimatePro() {
     </div>
   </div>
 )}
+
 
 
 
