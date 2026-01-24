@@ -450,58 +450,33 @@ export default function BadmintonUltimatePro() {
         {/* --- DASHBOARD TAB --- */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500 pb-20">
-          
-            {/*  4. การเงิน: สรุปยอดใน Bank Card (Classic Version) */}
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-widest">{bankName}</p>
-                <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
-                <p className="text-[14px] font-bold opacity-80 mb-6">{accountName}</p>
-                
-                <div className="flex gap-4 mb-2">
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex-1 text-center">
-                    <p className="text-[10px] font-bold opacity-60 uppercase">จ่ายแล้ว</p>
-                    <p className="text-[18px] font-black">{players.filter(p => p.paid).length} คน</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex-1 text-center border border-white/20">
-                    <p className="text-[10px] font-bold opacity-60 uppercase">ค้างชำระ</p>
-                    <p className="text-[18px] font-black text-rose-300">{players.filter(p => !p.paid).length} คน</p>
-                  </div>
-                </div>
-                
-                <p className="text-[24px] font-black text-center mt-4">
-                  <span className="opacity-60 text-[14px] mr-2">ยอดรวมทั้งหมด</span>
-                  ฿{players.reduce((sum, p) => sum + calculateFee(p), 0).toFixed(0)}
+            
+        {/* 1. ส่วนบัตรธนาคารและสรุปยอด (Classic Version) */}
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+            <div className="relative z-10">
+              <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-[0.2em]">{bankName}</p>
+              <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
+              <p className="text-[14px] font-bold opacity-80 mb-6">{accountName}</p>
+      
+        {/* สรุปยอดคนจ่าย/ค้างจ่าย (Classic UI) */}
+          <div className="flex gap-3 mb-6">
+            <div className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-center">
+              <p className="text-[10px] font-bold opacity-60 uppercase">จ่ายแล้ว</p>
+              <p className="text-[18px] font-black">{players.filter(p => p.paid).length} <span className="text-[10px] opacity-60">คน</span></p>
+            </div>
+          <div className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-center">
+              <p className="text-[10px] font-bold opacity-60 uppercase text-rose-200">ค้างชำระ</p>
+              <p className="text-[18px] font-black text-rose-300">{players.filter(p => !p.paid).length} <span className="text-[10px] opacity-60">คน</span></p>
+            </div>
+              </div>
+
+        {/* ยอดเงินรวมทั้งหมด */}
+              <div className="mb-6 text-center">
+                <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest mb-1">ยอดเงินรวมทั้งหมด</p>
+                <p className="text-[32px] font-black leading-none italic">
+                  ฿{players.reduce((sum, p) => sum + (calculateFee(p) || 0), 0).toLocaleString()}
                 </p>
               </div>
-            </div>
-            
-            {/* 1. ส่วนบัตรธนาคารและสรุปยอด (Classic Version) */}
-  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
-    <div className="relative z-10">
-      <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-[0.2em]">{bankName}</p>
-      <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
-      <p className="text-[14px] font-bold opacity-80 mb-6">{accountName}</p>
-      
-      {/* สรุปยอดคนจ่าย/ค้างจ่าย (Classic UI) */}
-        <div className="flex gap-3 mb-6">
-          <div className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-center">
-            <p className="text-[10px] font-bold opacity-60 uppercase">จ่ายแล้ว</p>
-            <p className="text-[18px] font-black">{players.filter(p => p.paid).length} <span className="text-[10px] opacity-60">คน</span></p>
-          </div>
-          <div className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-center">
-            <p className="text-[10px] font-bold opacity-60 uppercase text-rose-200">ค้างชำระ</p>
-            <p className="text-[18px] font-black text-rose-300">{players.filter(p => !p.paid).length} <span className="text-[10px] opacity-60">คน</span></p>
-          </div>
-        </div>
-
-    {/* ยอดเงินรวมทั้งหมด */}
-    <div className="mb-6 text-center">
-      <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest mb-1">ยอดเงินรวมทั้งหมด</p>
-      <p className="text-[32px] font-black leading-none italic">
-        ฿{players.reduce((sum, p) => sum + (calculateFee(p) || 0), 0).toLocaleString()}
-      </p>
-    </div>
     
     <div className="flex gap-3">
       <button 
@@ -891,6 +866,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
