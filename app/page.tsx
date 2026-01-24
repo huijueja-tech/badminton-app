@@ -705,9 +705,38 @@ export default function BadmintonUltimatePro() {
 
                 {/* 6. จัดการสนาม */}
                 <div className="space-y-4">
-                  <h4 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                    <LayoutDashboard size={14} /> 6. จัดการเลขสนามแบด
-                  </h4>
+                <h4 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
+                <LayoutDashboard size={14} /> 6. จัดการเลขสนามแบด
+                </h4>
+                    <div className="flex gap-2 px-4 mb-4">
+                    {/* ช่องกรอกเลขสนาม: ใช้ flex-1 เพื่อให้ขยายเต็มพื้นที่ที่เหลือ */}
+                    <input 
+                      value={newCourtNumber} 
+                      onChange={(e) => setNewCourtNumber(e.target.value)} 
+                      placeholder="เช่น 7" 
+                      className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-100 text-[16px]" 
+                      /* text-[16px] ช่วยป้องกันไม่ให้ iOS ซูมหน้าจอเวลาแตะ input */
+                    />
+                    
+                    {/* ปุ่มเพิ่ม: ใช้ shrink-0 เพื่อไม่ให้ปุ่มถูกบีบจนเสียรูป */}
+                    <button 
+                      onClick={async () => {
+                        if(!newCourtNumber) return;
+                        await supabase.from('courts').insert([{ 
+                          name: newCourtNumber.trim(), 
+                          status: 'available', 
+                          teamA: [], 
+                          teamB: [] 
+                        }]);
+                        setNewCourtNumber('');
+                      }}
+                      className="bg-indigo-500 text-white w-14 h-14 shrink-0 rounded-2xl font-black text-2xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-indigo-100"
+                    >
+                      +
+                    </button>
+  <              /div>
+                  
+                  // ของเดิม 
                   <div className="flex gap-3 px-2">
                     <input value={newCourtNumber} onChange={(e)=>setNewCourtNumber(e.target.value)} placeholder="เช่น สนาม 7" className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
                     <button 
@@ -716,11 +745,11 @@ export default function BadmintonUltimatePro() {
                         await supabase.from('courts').insert([{ name: newCourtNumber.trim(), status: 'available', teamA: [], teamB: [] }]);
                         setNewCourtNumber('');
                       }}
-                      className="bg-indigo-500 text-white px-6 rounded-2xl font-black text-xl"
-                    >
+                      className="bg-indigo-500 text-white px-6 rounded-2xl font-black text-xl">
                       +
                     </button>
                   </div>
+                  
                   <div className="flex flex-wrap gap-2 px-2">
                     {courts.map(c => (
                       <div key={c.id} className="bg-slate-50 pl-4 pr-1 py-1 rounded-xl flex items-center gap-3 border border-slate-100">
@@ -826,6 +855,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
