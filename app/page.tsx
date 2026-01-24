@@ -476,34 +476,55 @@ export default function BadmintonUltimatePro() {
               </div>
             </div>
             
-            {/* 1. ส่วนบัตรธนาคารและปุ่ม Copy Line */}
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-[0.2em]">{bankName}</p>
-                <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
-                <p className="text-[14px] font-bold opacity-80 mb-6">{accountName}</p>
-                
-                <div className="flex gap-3">
-                  <button 
-                    onClick={copyLineSummary}
-                    className="flex-1 py-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl flex items-center justify-center gap-2 font-bold text-[14px] hover:bg-white/30 transition-all active:scale-95"
-                  >
-                    📋 คัดลอกสรุปยอด (Line)
-                  </button>
-                </div>
-              </div>
-              <div className="absolute -right-10 -bottom-10 opacity-10">
-                 <QrCode size={180} />
-              </div>
-            </div>
-        
-            {/* 2. QR Code (ถ้ามี) */}
-            {bankQRImage && (
-              <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 text-center animate-in zoom-in duration-300">
-                 <img src={bankQRImage} alt="QR" className="mx-auto w-44 h-44 rounded-3xl border-4 border-slate-50" />
-                 <p className="mt-3 text-[11px] font-bold text-slate-300 uppercase tracking-widest">Scan to Pay</p>
-              </div>
-            )}
+            {/* 1. ส่วนบัตรธนาคารและสรุปยอด (Classic Version) */}
+  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+    <div className="relative z-10">
+      <p className="text-[12px] font-bold opacity-70 mb-1 uppercase tracking-[0.2em]">{bankName}</p>
+      <p className="text-[26px] font-black tracking-widest leading-none mb-1">{accountNumber}</p>
+      <p className="text-[14px] font-bold opacity-80 mb-6">{accountName}</p>
+      
+      {/* สรุปยอดคนจ่าย/ค้างจ่าย (Classic UI) */}
+        <div className="flex gap-3 mb-6">
+          <div className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-center">
+            <p className="text-[10px] font-bold opacity-60 uppercase">จ่ายแล้ว</p>
+            <p className="text-[18px] font-black">{players.filter(p => p.paid).length} <span className="text-[10px] opacity-60">คน</span></p>
+          </div>
+          <div className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-center">
+            <p className="text-[10px] font-bold opacity-60 uppercase text-rose-200">ค้างชำระ</p>
+            <p className="text-[18px] font-black text-rose-300">{players.filter(p => !p.paid).length} <span className="text-[10px] opacity-60">คน</span></p>
+          </div>
+        </div>
+
+    {/* ยอดเงินรวมทั้งหมด */}
+    <div className="mb-6 text-center">
+      <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest mb-1">ยอดเงินรวมทั้งหมด</p>
+      <p className="text-[32px] font-black leading-none italic">
+        ฿{players.reduce((sum, p) => sum + (calculateFee(p) || 0), 0).toLocaleString()}
+      </p>
+    </div>
+    
+    <div className="flex gap-3">
+      <button 
+        onClick={copyLineSummary}
+        className="flex-1 py-3 bg-white text-indigo-600 rounded-2xl flex items-center justify-center gap-2 font-black text-[14px] shadow-lg active:scale-95 transition-all"
+      >
+        📋 คัดลอกสรุปยอด (Line)
+      </button>
+    </div>
+  </div>
+  
+  <div className="absolute -right-10 -bottom-10 opacity-10">
+     <QrCode size={180} />
+  </div>
+</div>
+
+{/* 2. QR Code (ถ้ามี) */}
+{bankQRImage && (
+  <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 text-center animate-in zoom-in duration-300">
+     <img src={bankQRImage} alt="QR" className="mx-auto w-44 h-44 rounded-3xl border-4 border-slate-50" />
+     <p className="mt-3 text-[11px] font-bold text-slate-300 uppercase tracking-widest">สแกนเพื่อจ่ายเงิน</p>
+  </div>
+)}
         
             {/* 3. รายชื่อผู้เล่นและการจัดการเงิน (ไม่มี Scroll แยก) */}
             <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden">
@@ -870,6 +891,7 @@ export default function BadmintonUltimatePro() {
     </div>
   );
 }
+
 
 
 
