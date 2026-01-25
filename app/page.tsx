@@ -330,31 +330,59 @@ export default function BadmintonUltimatePro() {
 
   // 💻 โค้ดฟังก์ชัน confirmEndMatch
   const confirmEndMatch = async (shuttles) => {
-  if (!selectedCourtForEnd) return;
-  setLoading(true); // ป้องกันการกดซ้ำ
+    if (!selectedCourtForEnd) return;
+    setLoading(true); // ปรับปรุง: เพิ่ม loading เพื่อป้องกันการกดซ้ำ
 
-  try {
-    // ดึงรายชื่อผู้เล่นทั้งหมดจากสนามที่กำลังจะจบเกม
-    const court = selectedCourtForEnd;
-    // รวมผู้เล่นจากทั้งสองทีม โดยดึงเอา Object ผู้เล่นออกมา
-    const allParticipants = [...(court.teamA || []), ...(court.teamB || [])];
+    try {
+      const court = selectedCourtForEnd;
+      // ของใหม่: ป้องกัน Error กรณีทีมว่างด้วย (|| [])
+      const allParticipants = [...(court.teamA || []), ...(court.teamB || [])];
 
-    for (const playerObj of allParticipants) {
-      // ดึงข้อมูลเดิมด้วย name จาก Object
-      const { data: pData } = await supabase
-        .from('players')
-        .select('gamesPlayed, shuttlesInvolved')
-        .eq('name', playerObj.name) 
-        .single();
+      for (const playerObj of allParticipants) {
+      // ของใหม่: ดึง pData โดยใช้ playerObj.name (หรือ playerObj.id จะชัวร์กว่า)
+        const { data: pData } = await supabase
+          .from('players')
+          .select('gamesPlayed, shuttlesInvolved')
+          .eq('id', playerObj.id) // แนะนำ: ใช้ id แทน name เพื่อความแม่นยำ 100%
+          .single();
 
-      if (pData) {
-        await supabase.from('players').update({
-          gamesPlayed: (pData.gamesPlayed || 0) + 1,
-          shuttlesInvolved: (pData.shuttlesInvolved || 0) + shuttles,
-          status: 'waiting'
-        }).eq('name', playerObj.name);
+        if (pData) {
+          await supabase.from('players').update({
+            gamesPlayed: (pData.gamesPlayed || 0) + 1,
+            shuttlesInvolved: (pData.shuttlesInvolved || 0) + shuttles,
+            status: 'waiting'
+          }).eq('id', playerObj.id); // แก้ไขให้ใช้ id เหมือนกัน
+        }
       }
+
+      // รีเซ็ตสนาม
+      await supabase.from('courts').update({
+        status: 'available',
+        teamA: [],
+        teamB: [],
+        start_time: null
+      }).eq('id', court.id);
+
+      setShowEndMatchModal(false);
+      setSelectedCourtForEnd(null);
+      
+      // ของเดิมไม่มีบรรทัดนี้ ทำให้ UI ไม่เปลี่ยนสถานะทันที
+      await fetchOnlineData(); // สำคัญมาก: เพื่อให้ปุ่ม "ลงสนาม" กลับมา
+      
+      setAlertModal({ 
+        show: true, 
+        title: 'จบเกมเรียบร้อย! 🏸', 
+        message: `บันทึกสถิติและใช้แบดไป ${shuttles} ลูกจ้า`, 
+        type: 'success' 
+      });
+
+    } catch (error) {
+      console.error('Error ending match:', error);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    } finally {
+      setLoading(false);
     }
+  };
 
     // รีเซ็ตสนาม
     await supabase.from('courts').update({
@@ -972,6 +1000,7 @@ export default function BadmintonUltimatePro() {
     </div> // ปิด DIV หลักของ Return
   ); // ปิด Return
 } // ปิด Function
+
 
 
 
