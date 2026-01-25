@@ -274,52 +274,55 @@ export default function BadmintonUltimatePro() {
 };
   // สร้างฟังก์ชันล้างข้อมูลพร้อมบันทึกสถิติ
   const handleResetDay = async () => {
-    if (!confirm('ต้องการล้างข้อมูลเพื่อเริ่มวันใหม่ใช่หรือไม่? (ระบบจะอัปเดตสถิติตลอดกาลให้ก่อนลบ)')) return;
-  
-    try {
-      // 1. วนลูปเพื่ออัปเดตสถิติตลอดกาลลงในตาราง player_stats (ถ้ามี)
-      for (const p of players) {
-        const { data: existingStat } = await supabase
-          .from('player_stats')
-          .select('*')
-          .eq('name', p.name)
-          .single();
-  
-        if (existingStat) {
-          // มีชื่อเดิมอยู่แล้ว ให้บวกเพิ่ม
-          await supabase.from('player_stats').update({
-            total_games: existingStat.total_games + p.gamesPlayed,
-            total_wins: existingStat.total_wins + p.wins,
-            total_points: existingStat.total_points + p.points
-          }).eq('name', p.name);
-        } else {
-          // ชื่อใหม่ ให้สร้างแถวใหม่
-          await supabase.from('player_stats').insert([{
-            name: p.name,
-            total_games: p.gamesPlayed,
-            total_wins: p.wins,
-            total_points: p.points
-          }]);
-        }
+  if (!confirm('ยืนยันปิดยอดก๊วน? ระบบจะบันทึกสถิติและล้างรายชื่อผู้เล่น')) return;
+  setLoading(true);
+
+  try {
+    // 1. บันทึกสถิติลงตารางตลอดกาล
+    for (const p of players) {
+      const { data: existingStat } = await supabase
+        .from('player_stats')
+        .select('*')
+        .eq('name', p.name)
+        .single();
+
+      if (existingStat) {
+        await supabase.from('player_stats').update({
+          total_games: (existingStat.total_games || 0) + (p.gamesPlayed || 0),
+          total_wins: (existingStat.total_wins || 0) + (p.wins || 0),
+          total_points: (existingStat.total_points || 0) + (p.points || 0)
+        }).eq('name', p.name);
+      } else {
+        await supabase.from('player_stats').insert([{
+          name: p.name,
+          total_games: p.gamesPlayed,
+          total_wins: p.wins,
+          total_points: p.points
+        }]);
       }
-  
-      // 2. ลบข้อมูลในตารางผู้เล่นรายวัน (เคลียร์หน้าจอ)
-      await supabase.from('players').delete().neq('id', 0); // ลบทุกคน
-      
-      // 3. รีเซ็ตสถานะสนาม
-      await supabase.from('courts').update({
-        status: 'available',
-        teamA: [],
-        teamB: [],
-        start_time: null
-      }).neq('id', 0);
-  
-      alert('บันทึกสถิติและล้างข้อมูลเรียบร้อยแล้วจ้า! 🏸');
-    } catch (err) {
-      console.error(err);
-      alert('เกิดข้อผิดพลาดในการล้างข้อมูล');
     }
-  };
+
+    // 2. ล้างข้อมูลรายวัน
+    await supabase.from('players').delete().neq('id', 0);
+    
+    // 3. รีเซ็ตสนามทั้งหมด
+    await supabase.from('courts').update({
+      status: 'available',
+      teamA: [],
+      teamB: [],
+      start_time: null
+    }).neq('id', 0);
+
+    alert('บันทึกสถิติและล้างข้อมูลเรียบร้อยแล้วจ้า! 🏸');
+    await fetchOnlineData(); // รีเฟรชหน้าจอ
+    
+  } catch (err) {
+    console.error(err);
+    alert('เกิดข้อผิดพลาดในการล้างข้อมูล');
+  } finally {
+    setLoading(false);
+  }
+};
   
   const filteredPlayers = useMemo(() => {
     return players.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -328,61 +331,59 @@ export default function BadmintonUltimatePro() {
   // 💻 โค้ดฟังก์ชัน confirmEndMatch
   const confirmEndMatch = async (shuttles) => {
   if (!selectedCourtForEnd) return;
+  setLoading(true); // ป้องกันการกดซ้ำ
 
   try {
-    // 1. ดึงรายชื่อผู้เล่นทั้งหมดจากสนามที่กำลังจะจบเกม
+    // ดึงรายชื่อผู้เล่นทั้งหมดจากสนามที่กำลังจะจบเกม
     const court = selectedCourtForEnd;
-    const allPlayersInMatch = [...(court.teamA || []), ...(court.teamB || [])];
+    // รวมผู้เล่นจากทั้งสองทีม โดยดึงเอา Object ผู้เล่นออกมา
+    const allParticipants = [...(court.teamA || []), ...(court.teamB || [])];
 
-    // 2. อัปเดตข้อมูลผู้เล่นทุกคนใน Supabase (บวกจำนวนเกม และ จำนวนลูกแบด)
-    for (const playerName of allPlayersInMatch) {
-      // ค้นหาข้อมูลเดิมของผู้เล่นคนนี้ก่อน
+    for (const playerObj of allParticipants) {
+      // ดึงข้อมูลเดิมด้วย name จาก Object
       const { data: pData } = await supabase
         .from('players')
         .select('gamesPlayed, shuttlesInvolved')
-        .eq('name', playerName)
+        .eq('name', playerObj.name) 
         .single();
 
       if (pData) {
-        await supabase
-          .from('players')
-          .update({
-            gamesPlayed: (pData.gamesPlayed || 0) + 1,
-            shuttlesInvolved: (pData.shuttlesInvolved || 0) + shuttles,
-            status: 'waiting' // เมื่อจบเกมให้กลับไปสถานะรอเล่น
-          })
-          .eq('name', playerName);
+        await supabase.from('players').update({
+          gamesPlayed: (pData.gamesPlayed || 0) + 1,
+          shuttlesInvolved: (pData.shuttlesInvolved || 0) + shuttles,
+          status: 'waiting'
+        }).eq('name', playerObj.name);
       }
     }
 
-    // 3. รีเซ็ตสนามใน Supabase ให้ว่าง
-    await supabase
-      .from('courts')
-      .update({
-        status: 'available',
-        teamA: [],
-        teamB: [],
-        start_time: null
-      })
-      .eq('id', court.id);
+    // รีเซ็ตสนาม
+    await supabase.from('courts').update({
+      status: 'available',
+      teamA: [],
+      teamB: [],
+      start_time: null
+    }).eq('id', court.id);
 
-    // 4. ปิด Modal และเคลียร์ค่าชั่วคราว
     setShowEndMatchModal(false);
     setSelectedCourtForEnd(null);
-
-    // 5. (Option) แจ้งเตือนความสำเร็จ
-    setAlertModal?.({ 
+    
+    // สำคัญ: ต้องเรียกฟังก์ชันนี้เพื่อให้หน้าจออัปเดต
+    await fetchOnlineData(); 
+    
+    setAlertModal({ 
       show: true, 
       title: 'จบเกมเรียบร้อย! 🏸', 
       message: `บันทึกสถิติและใช้แบดไป ${shuttles} ลูกจ้า`, 
       type: 'success' 
     });
 
-  } catch (error) {
-    console.error('Error ending match:', error);
-    alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-  }
-};
+    } catch (error) {
+      console.error('Error ending match:', error);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- [5] RENDER UI ---
   if (loading) return (
@@ -450,16 +451,6 @@ export default function BadmintonUltimatePro() {
                 </button>
               </div>
             </section>
-
-            <button 
-              onClick={() => {
-                setSelectedCourtForEnd(courts); // เก็บข้อมูลสนามที่จะจบ
-                setShowEndMatchModal(true);    // เปิด Modal ถามจำนวนลูก
-              }}
-              className="..."
-            >
-              จบเกม
-            </button>
 
             {/* ส่วนสถานะสนาม */}
             <div className="space-y-4 pt-2">
@@ -623,6 +614,7 @@ export default function BadmintonUltimatePro() {
                             onClick={async () => {
                               if(confirm(`ลบ ${p.name} ออกจากรายการวันนี้? (ข้อมูลสถิติวันนี้จะหายไปด้วย)`)) {
                                 await supabase.from('players').delete().eq('id', p.id);
+                                await fetchOnlineData(); // เพิ่มบรรทัดนี้
                               }
                             }}
                             className="mt-2 text-rose-300 hover:text-rose-500 transition-colors p-1"
@@ -980,6 +972,7 @@ export default function BadmintonUltimatePro() {
     </div> // ปิด DIV หลักของ Return
   ); // ปิด Return
 } // ปิด Function
+
 
 
 
