@@ -21,6 +21,7 @@ export default function BadmintonUltimatePro() {
   const [newCourtNumber, setNewCourtNumber] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [allTimeStats, setAllTimeStats] = useState<any[]>([]);
   
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' });
   const [confirmModal, setConfirmModal] = useState({ show: false, name: '' });
@@ -63,6 +64,13 @@ export default function BadmintonUltimatePro() {
       
       const { data: c, error: cErr } = await supabase.from('courts').select('*').order('name', { ascending: true });
       if (c) setCourts(c);
+
+      // ✅ วางตรงนี้ได้เลยครับ (ก่อนดึง settings หรือต่อจาก settings ก็ได้)
+      const { data: stats } = await supabase
+      .from('player_stats')
+      .select('*')
+      .order('total_wins', { ascending: false }); 
+      if (stats) setAllTimeStats(stats);
       
       const { data: s, error: sErr } = await supabase.from('settings').select('*').eq('id', 1).single();
       if (s) {
@@ -674,44 +682,54 @@ export default function BadmintonUltimatePro() {
           </div>
         )}
 
-        {/* --- RANKING TAB --- */}
-        {activeTab === 'ranking' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-             <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-8 rounded-[3rem] text-white shadow-xl flex items-center gap-6">
-                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/30">
-                   <Award size={36} />
-                </div>
-                <div>
-                  <h2 className="text-[24px] font-black italic">HALL OF FAME</h2>
-                  <p className="text-yellow-100 text-[11px] font-bold uppercase tracking-widest">ทำเนียบนักแบดมือทอง</p>
-                </div>
-             </div>
+       {/* --- RANKING TAB --- */}
+{activeTab === 'ranking' && (
+  <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-8 rounded-[3rem] text-white shadow-xl flex items-center gap-6">
+      <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/30">
+        <Award size={36} />
+      </div>
+      <div>
+        <h2 className="text-[24px] font-black italic">HALL OF FAME</h2>
+        <p className="text-yellow-100 text-[11px] font-bold uppercase tracking-widest">ทำเนียบนักแบดสะสม</p>
+      </div>
+    </div>
 
-             <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden p-2">
-                {players.map((p, i) => (
-                  <div key={p.id} className="p-6 flex items-center justify-between border-b border-slate-50 last:border-0">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <span className={`absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-black border-2 border-white shadow-md ${i===0 ? 'bg-yellow-400 text-white' : i===1 ? 'bg-slate-300 text-white' : i===2 ? 'bg-orange-300 text-white' : 'bg-white text-slate-300'}`}>
-                          {i+1}
-                        </span>
-                        <img src={p.avatar} alt={p.name} className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-700 text-[17px]">{p.name}</p>
-                        <p className="text-[12px] font-bold text-emerald-500 uppercase">WIN {p.wins} / PLAY {p.gamesPlayed}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[24px] font-black text-indigo-600 leading-none">{p.points}</p>
-                      <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-1">POINTS</p>
-                    </div>
-                  </div>
-                ))}
-             </div>
+    <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden p-2">
+      {/* เปลี่ยนจาก players เป็น allTimeStats */}
+      {allTimeStats.length === 0 ? (
+        <div className="p-10 text-center text-slate-400 font-bold">ยังไม่มีข้อมูลสถิติสะสม</div>
+      ) : (
+        allTimeStats.map((p, i) => (
+          <div key={p.id} className="p-6 flex items-center justify-between border-b border-slate-50 last:border-0">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <span className={`absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-black border-2 border-white shadow-md ${i===0 ? 'bg-yellow-400 text-white' : i===1 ? 'bg-slate-300 text-white' : i===2 ? 'bg-orange-300 text-white' : 'bg-white text-slate-300'}`}>
+                  {i+1}
+                </span>
+                {/* ถ้าใน player_stats ไม่มีรูป ให้ใช้รูป Default หรือใส่รูปเงาแทน */}
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-300 border border-slate-100">
+                   🏸
+                </div>
+              </div>
+              <div>
+                <p className="font-bold text-slate-700 text-[17px]">{p.name}</p>
+                {/* ดึงค่าสะสมมาโชว์ */}
+                <p className="text-[12px] font-bold text-emerald-500 uppercase">
+                  WIN {p.total_wins || 0} / PLAY {p.total_games || 0}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[24px] font-black text-indigo-600 leading-none">{p.total_points || 0}</p>
+              <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-1">TOTAL POINTS</p>
+            </div>
           </div>
-        )}
-
+        ))
+      )}
+    </div>
+  </div>
+)}
         {/* --- ADMIN TAB --- */}
         {activeTab === 'admin' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-6 duration-700 pb-10">
@@ -972,6 +990,7 @@ export default function BadmintonUltimatePro() {
     </div> // ปิด DIV หลักของ Return
   ); // ปิด Return
 } // ปิด Function
+
 
 
 
