@@ -705,9 +705,16 @@ export default function BadmintonUltimatePro() {
           <div key={p.id} className="p-6 flex items-center justify-between border-b border-slate-50 last:border-0">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <span className={`absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-black border-2 border-white shadow-md ${i===0 ? 'bg-yellow-400 text-white' : i===1 ? 'bg-slate-300 text-white' : i===2 ? 'bg-orange-300 text-white' : 'bg-white text-slate-300'}`}>
-                  {i+1}
-                </span>
+                {/* --- ส่วนลำดับและเหรียญรางวัล --- */}
+                  <span className={`absolute -top-3 -left-3 w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-black border-2 border-white shadow-lg z-10
+                    ${i === 0 ? 'bg-yellow-400 text-white animate-bounce' : // เหรียญทอง
+                      i === 1 ? 'bg-slate-300 text-white' :               // เหรียญเงิน
+                      i === 2 ? 'bg-orange-400 text-white' :              // เหรียญทองแดง
+                      'bg-white text-slate-300'                           // อันดับอื่นๆ
+                    }`}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                  </span>
+                
                 {/* ถ้าใน player_stats ไม่มีรูป ให้ใช้รูป Default หรือใส่รูปเงาแทน */}
                 <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-300 border border-slate-100">
                    🏸
@@ -991,6 +998,7 @@ export default function BadmintonUltimatePro() {
     </div> // ปิด DIV หลักของ Return
   ); // ปิด Return
 } // ปิด Function
+
 
 
 
