@@ -303,7 +303,7 @@ export default function BadmintonUltimatePro() {
     }
 
     // 2. ล้างข้อมูลรายวัน
-    await supabase.from('players').delete().neq('id', 0);
+    await supabase.from('players').delete().not('id', 'is', null);
     
     // 3. รีเซ็ตสนามทั้งหมด
     await supabase.from('courts').update({
@@ -311,9 +311,13 @@ export default function BadmintonUltimatePro() {
       teamA: [],
       teamB: [],
       start_time: null
-    }).neq('id', 0);
+    }).not('id', 'is', null);
 
     alert('บันทึกสถิติและล้างข้อมูลเรียบร้อยแล้วจ้า! 🏸');
+
+    // บังคับล้างค่าในเครื่องทันทีเพื่อให้หน้าจอขาวสะอาดแน่นอน
+    setPlayers([]);
+    
     await fetchOnlineData(); // รีเฟรชหน้าจอ
     
   } catch (err) {
@@ -968,6 +972,7 @@ export default function BadmintonUltimatePro() {
     </div> // ปิด DIV หลักของ Return
   ); // ปิด Return
 } // ปิด Function
+
 
 
 
