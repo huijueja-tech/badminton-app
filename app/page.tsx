@@ -288,7 +288,8 @@ export default function BadmintonUltimatePro() {
   try {
     // 1. บันทึกสถิติลงตารางตลอดกาล
     for (const p of players) {
-      const { data: existingStat } = await supabase
+      console.log("กำลังบันทึกสถิติให้:", p.name); // <--- เพิ่มบรรทัดนี้
+      const { data: existingStat, error: findError } = await supabase
         .from('player_stats')
         .select('*')
         .eq('name', p.name)
@@ -303,9 +304,9 @@ export default function BadmintonUltimatePro() {
       } else {
         await supabase.from('player_stats').insert([{
           name: p.name,
-          total_games: p.gamesPlayed,
-          total_wins: p.wins,
-          total_points: p.points
+          total_games: p.gamesPlayed || 0, // ป้องกันค่าว่าง
+          total_wins: p.wins || 0,
+          total_points: p.points || 0
         }]);
       }
     }
@@ -990,6 +991,7 @@ export default function BadmintonUltimatePro() {
     </div> // ปิด DIV หลักของ Return
   ); // ปิด Return
 } // ปิด Function
+
 
 
 
