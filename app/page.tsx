@@ -331,19 +331,17 @@ export default function BadmintonUltimatePro() {
   // 💻 โค้ดฟังก์ชัน confirmEndMatch
   const confirmEndMatch = async (shuttles) => {
     if (!selectedCourtForEnd) return;
-    setLoading(true); // ปรับปรุง: เพิ่ม loading เพื่อป้องกันการกดซ้ำ
+    setLoading(true);
 
     try {
       const court = selectedCourtForEnd;
-      // ของใหม่: ป้องกัน Error กรณีทีมว่างด้วย (|| [])
       const allParticipants = [...(court.teamA || []), ...(court.teamB || [])];
 
       for (const playerObj of allParticipants) {
-      // ของใหม่: ดึง pData โดยใช้ playerObj.name (หรือ playerObj.id จะชัวร์กว่า)
         const { data: pData } = await supabase
           .from('players')
           .select('gamesPlayed, shuttlesInvolved')
-          .eq('id', playerObj.id) // แนะนำ: ใช้ id แทน name เพื่อความแม่นยำ 100%
+          .eq('id', playerObj.id)
           .single();
 
         if (pData) {
@@ -351,11 +349,10 @@ export default function BadmintonUltimatePro() {
             gamesPlayed: (pData.gamesPlayed || 0) + 1,
             shuttlesInvolved: (pData.shuttlesInvolved || 0) + shuttles,
             status: 'waiting'
-          }).eq('id', playerObj.id); // แก้ไขให้ใช้ id เหมือนกัน
+          }).eq('id', playerObj.id);
         }
       }
 
-      // รีเซ็ตสนาม
       await supabase.from('courts').update({
         status: 'available',
         teamA: [],
@@ -365,9 +362,7 @@ export default function BadmintonUltimatePro() {
 
       setShowEndMatchModal(false);
       setSelectedCourtForEnd(null);
-      
-      // ของเดิมไม่มีบรรทัดนี้ ทำให้ UI ไม่เปลี่ยนสถานะทันที
-      await fetchOnlineData(); // สำคัญมาก: เพื่อให้ปุ่ม "ลงสนาม" กลับมา
+      await fetchOnlineData();
       
       setAlertModal({ 
         show: true, 
@@ -382,50 +377,21 @@ export default function BadmintonUltimatePro() {
     } finally {
       setLoading(false);
     }
-  };
-
-    // รีเซ็ตสนาม
-    await supabase.from('courts').update({
-      status: 'available',
-      teamA: [],
-      teamB: [],
-      start_time: null
-    }).eq('id', court.id);
-
-    setShowEndMatchModal(false);
-    setSelectedCourtForEnd(null);
-    
-    // สำคัญ: ต้องเรียกฟังก์ชันนี้เพื่อให้หน้าจออัปเดต
-    await fetchOnlineData(); 
-    
-    setAlertModal({ 
-      show: true, 
-      title: 'จบเกมเรียบร้อย! 🏸', 
-      message: `บันทึกสถิติและใช้แบดไป ${shuttles} ลูกจ้า`, 
-      type: 'success' 
-    });
-
-    } catch (error) {
-      console.error('Error ending match:', error);
-      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }; // จบฟังก์ชัน confirmEndMatch แค่ตรงนี้
 
   // --- [5] RENDER UI ---
   if (loading) {
     return (
-    <div className="min-h-screen flex items-center justify-center bg-white text-pink-500 font-bold" style={{fontFamily: "'Mali', cursive"}}>
-      <div className="flex flex-col items-center gap-4">
-        <div className="animate-bounce text-4xl">🏸</div>
-        <p>กำลังเตรียมความพร้อมให้ก๊วนแบด...</p>
+      <div className="min-h-screen flex items-center justify-center bg-white text-pink-500 font-bold" style={{fontFamily: "'Mali', cursive"}}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-bounce text-4xl">🏸</div>
+          <p>กำลังเตรียมความพร้อมให้ก๊วนแบด...</p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  } // <--- ต้องมีปีกกาปิดบล็อก if ตรงนี้!
 
-return (
+  return (
     <div className="min-h-screen bg-[#FDFCFB] pb-36 text-slate-700" style={{ fontFamily: "'Mali', cursive" }}>
       
       {/* HEADER */}
@@ -1002,6 +968,7 @@ return (
     </div> // ปิด DIV หลักของ Return
   ); // ปิด Return
 } // ปิด Function
+
 
 
 
