@@ -414,7 +414,8 @@ export default function BadmintonUltimatePro() {
   };
 
   // --- [5] RENDER UI ---
-  if (loading) return (
+  if (loading) {
+    return (
     <div className="min-h-screen flex items-center justify-center bg-white text-pink-500 font-bold" style={{fontFamily: "'Mali', cursive"}}>
       <div className="flex flex-col items-center gap-4">
         <div className="animate-bounce text-4xl">🏸</div>
@@ -422,8 +423,9 @@ export default function BadmintonUltimatePro() {
       </div>
     </div>
   );
+}
 
-  return (
+return (
     <div className="min-h-screen bg-[#FDFCFB] pb-36 text-slate-700" style={{ fontFamily: "'Mali', cursive" }}>
       
       {/* HEADER */}
@@ -1000,6 +1002,7 @@ export default function BadmintonUltimatePro() {
     </div> // ปิด DIV หลักของ Return
   ); // ปิด Return
 } // ปิด Function
+
 
 
 
